@@ -1,0 +1,8 @@
+*.db
+config.json
+*.pyc
+data/
+nbtest/
+report/
+__pycache__/
+*.7z

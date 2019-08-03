@@ -1,0 +1,10 @@
+numpy
+pandas
+matplotlib
+pyecharts
+tushare
+requests
+notebook
+jupyter
+ipython
+elasticsearch
