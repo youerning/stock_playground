@@ -141,7 +141,7 @@ class BackTestBroker(Base):
             time_diff = self.ctx.now - order["date"]
             # 15:00 - 09:30 = 19800 secs
             # A股T+1交易
-            if time_diff.total_seconds < 19800:
+            if time_diff.total_seconds() < 19800:
                 return
 
             # 符合条件开始交易
