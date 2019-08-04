@@ -124,7 +124,11 @@ class BackTestBroker(Base):
             if not self.ctx.bt.before_trade(order):
                 return
 
-            deal = {"price": stock_price, "date": self.ctx.now, "commission": commission, "shares": order["shares"]}
+            deal = {"price": stock_price,
+                    "date": self.ctx.now,
+                    "commission": commission,
+                    "shares": order["shares"]}
+
             self.cash = self.cash - cost - commission
             order["deal_lst"].append(deal)
             self.position[order_code].append(deal.copy())
@@ -134,10 +138,10 @@ class BackTestBroker(Base):
 
         elif order["type"] == "sell" and order_price <= stock_price and order_code in self.position:
             trade_price = stock_price
-            # 这样判断有问题
-            day_diff = self.ctx.now - order["date"]
+            time_diff = self.ctx.now - order["date"]
+            # 15:00 - 09:30 = 19800 secs
             # A股T+1交易
-            if day_diff.days < 1:
+            if time_diff.total_seconds < 19800:
                 return
 
             # 符合条件开始交易
