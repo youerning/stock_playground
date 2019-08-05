@@ -12,7 +12,7 @@ from datetime import timedelta
 from os import path
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures as futures
-from settings import config
+from ..settings import config
 
 
 curdir = path.dirname(path.abspath(__file__))
@@ -37,7 +37,7 @@ def code_gen(code_lst):
     """
     global pass_set
     # 查询当前所有正常上市交易的股票列表
-    data_path = path.join(curdir, DATA_DIR)
+    data_path = DATA_DIR
 
     if not path.exists(data_path):
         os.mkdir(data_path)

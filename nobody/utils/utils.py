@@ -8,15 +8,14 @@ import sys
 import pandas as pd
 from glob import glob
 from os import path
-from settings import config
+from ..settings import config
 from datetime import datetime
 
 
 READALL_SQL = "SELECT * FROM DATA"
 READ_ONE_SQL = "SELECT * FROM DATA ORDER BY trade_date DESC LIMIT 1"
-data_path_name = "data"
+data_path = config["DATA_DIR"]
 curdir = path.dirname(path.abspath(__file__))
-data_path = path.join(curdir, data_path_name)
 
 
 def init_log(name, level=30, log_to_file=False):

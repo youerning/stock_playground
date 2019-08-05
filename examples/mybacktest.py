@@ -2,8 +2,10 @@
 # @Author: youerning
 # @Email: 673125641@qq.com
 import json
-from backtest import BackTest
-from reporter import Plotter
+import os
+from os import path
+from nobody.backtest import BackTest
+from nobody.reporter import Plotter
 
 
 class MyBackTest(BackTest):
@@ -68,7 +70,7 @@ class MyBackTest(BackTest):
 
 
 if __name__ == '__main__':
-    from utils import load_hist
+    from nobody.utils import load_hist
     feed = {}
 
     for code, hist in load_hist("000002.SZ"):
@@ -77,9 +79,12 @@ if __name__ == '__main__':
         hist["ma20"] = hist.close.rolling(20).mean()
         feed[code] = hist
 
+    print(feed.keys())
     mytest = MyBackTest(feed)
     mytest.start()
     order_lst = mytest.ctx.broker.order_hist_lst
+    if not path.exists("report"):
+        os.mkdir("report")
     with open("report/order_hist.json", "w") as wf:
         json.dump(order_lst, wf, indent=4, default=str)
     stats = mytest.stat

@@ -4,8 +4,8 @@
 import numpy as np
 from bokeh.plotting import figure
 from bokeh.plotting import output_file
-from bokeh.plotting import gridplot
-from bokeh.models import Arrow, OpenHead, NormalHead, VeeHead
+# from bokeh.plotting import gridplot
+from bokeh.models import Arrow, NormalHead
 from math import pi
 
 

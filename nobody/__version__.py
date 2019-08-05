@@ -1,0 +1,6 @@
+__title__ = 'nobody'
+__description__ = 'Financial analysis tools'
+__version__ = '0.0.1'
+__author__ = 'youerning'
+__author_email__ = '673125641@qq.com'
+__license__ = 'Apache 2.0'

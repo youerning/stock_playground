@@ -8,8 +8,8 @@ from os import path
 
 config_file_name = "config.json"
 curdir = path.dirname(path.abspath(__file__))
-config_path = path.join(curdir, config_file_name)
-config = json.load(open(config_path))
+# config_path = path.join(curdir, config_file_name)
+config = json.load(open(config_file_name))
 
 # es 配置
 config["es_host"] = ["192.168.56.102:9200"]
