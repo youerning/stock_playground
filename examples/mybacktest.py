@@ -6,6 +6,7 @@ import os
 from os import path
 from nobody.backtest import BackTest
 from nobody.reporter import Plotter
+from nobody.reporter import Html
 
 
 class MyBackTest(BackTest):
@@ -33,6 +34,9 @@ class MyBackTest(BackTest):
     def on_tick(self, tick):
         # self.info(tick)
         tick_data = self.ctx["tick_data"]
+        # print(tick_data)
+        # print(tick_data)
+        # print(tick)
         # if self._first:
         #     self.ctx.broker.buy(code, hist.close, 100, ttl=5)
         #     self._first = False
@@ -41,10 +45,10 @@ class MyBackTest(BackTest):
             #     self.ctx.broker.sell(code, hist.close, 1000, ttl=5)
             #     self.ctx.broker.buy(code, hist.close, 100, ttl=5)
             #     self._first = False
-            if hist["ma10"] > 1.05 * hist["ma20"]:
+            if hist["ma10"] > 1.03 * hist["ma20"]:
                 self.ctx.broker.buy(code, hist.close, 500, ttl=5)
 
-            if hist["ma10"] < hist["ma20"] and code in self.ctx.broker.position:
+            if hist["ma10"] < 0.92 * hist["ma20"] and code in self.ctx.broker.position:
                 self.ctx.broker.sell(code, hist.close, 200, ttl=1)
 
 
@@ -74,12 +78,12 @@ if __name__ == '__main__':
     feed = {}
 
     for code, hist in load_hist("000002.SZ"):
-        # hist = hist.iloc[:100]
+        # hist = hist.iloc[:30]
         hist["ma10"] = hist.close.rolling(10).mean()
         hist["ma20"] = hist.close.rolling(20).mean()
         feed[code] = hist
 
-    print(feed.keys())
+    # print(feed)
     mytest = MyBackTest(feed)
     mytest.start()
     order_lst = mytest.ctx.broker.order_hist_lst
@@ -96,3 +100,6 @@ if __name__ == '__main__':
 
     plotter = Plotter(feed, stats, order_lst)
     plotter.report("report/report.png")
+
+    html = Html(feed, stats, order_lst)
+    html.report("report/report.html")

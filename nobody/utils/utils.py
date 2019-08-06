@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # @Author: youerning
 # @Email: 673125641@qq.com
-import sqlite3
 import logging
 import os
 import sys
@@ -9,13 +8,9 @@ import pandas as pd
 from glob import glob
 from os import path
 from ..settings import config
-from datetime import datetime
 
 
-READALL_SQL = "SELECT * FROM DATA"
-READ_ONE_SQL = "SELECT * FROM DATA ORDER BY trade_date DESC LIMIT 1"
-data_path = config["DATA_DIR"]
-curdir = path.dirname(path.abspath(__file__))
+data_path = config["STOCK_DATA_DIR"]
 
 
 def init_log(name, level=30, log_to_file=False):
@@ -43,174 +38,65 @@ def init_log(name, level=30, log_to_file=False):
 def load_hist(ts_code=None, start_date=None, end_date=None, func=None):
     """加载本地历史数据
 
-    func: 用于过滤历史数据的函数, 接受一个Datarame对象
-    start_date: 起始时间
-    end_date: 截至时间
+    Parameters:
+      cash:int
+            初始资金
+      cm_rate:float
+            交易手续费
+      deal_price:str
+            用于回测的股价类型(open, high, low, close), 默认为close
+    ts_code: str or list
+                单个或者多个股票代码的列表
+    start_date: str
+            起始时间字符串, 比如2018-01-01
+    end_date: str
+            截至时间字符串, 比如2019-01-01
+    func: function
+            用于过滤历史数据的函数, 接受一个Datarame对象, 并返回过滤的DataFrame对象
     """
     db_glob_lst = glob(path.join(data_path, "*.csv"))
+    if len(db_glob_lst) == 0:
+        print("当前数据目录没有任何历史数据文件")
+        return
+
     for fp in db_glob_lst:
-        if ts_code and ts_code in fp:
+        fp_ts_code = path.basename(fp)[:-4]
+        if ts_code:
+            if fp_ts_code in ts_code:
+                hist = pd.read_csv(fp, parse_dates=["trade_date"], index_col="trade_date")
+                code = hist.ts_code[0]
+            else:
+                continue
+        else:
             hist = pd.read_csv(fp, parse_dates=["trade_date"], index_col="trade_date")
             code = hist.ts_code[0]
-            yield code, hist
-            return
-        else:
-            continue
-        hist = pd.read_csv(fp, parse_dates=["trade_date"], index_col="trade_date")
-        if func is not None:
+
+        if func:
             hist = func(hist)
-        code = hist.ts_code[0]
+
+        if start_date:
+            start_date = pd.to_datetime(start_date)
+            hist = hist[hist.index >= start_date]
+
+        if end_date:
+            end_date = pd.to_datetime(end_date)
+            hist = hist[hist.index <= end_date]
+
         yield code, hist
 
 
+def load_hs300_hist():
+    pass
+
+
 def load_all_hist():
-    """load_hist的快捷方法"""
+    """加载所有历史数据, load_hist的快捷方法"""
     data = {code: hist for code, hist in load_hist()}
     return data
 
 
-def convert():
-    """convert data store with format sqlite to data with format csv"""
-    db_glob_lst = glob(path.join(data_path, "*.db"))
-    for db_path in db_glob_lst:
-        fp = db_path[:-3] + ".csv"
-        if path.exists(fp):
-            continue
-
-        with sqlite3.connect(db_path) as conn:
-            data = pd.read_sql(READALL_SQL, conn, parse_dates=["trade_date"])
-            data.sort_values("trade_date").to_csv(fp, index=False)
-
-    db_glob_lst = glob(path.join(data_path, "*.csv"))
-    for db_path in db_glob_lst:
-        data = pd.read_csv(db_path, parse_dates=["trade_date"])
-        data.sort_values("trade_date").to_csv(db_path, index=False)
-
-
-def es_client():
-    from elasticsearch import Elasticsearch
-    es = Elasticsearch(config["es_host"])
-
-    return es
-
-
-def find_max_date(ts_code, index_name):
-    es = es_client()
-    body = {
-        "aggs": {
-            "trade_date": {
-                "max": {
-                    "field": "trade_date"
-                }
-            }
-        },
-        "size": 0,
-        "query": {
-            "bool": {
-                "must": [
-                    {
-                        "match_phrase": {
-                            "ts_code.keyword": {
-                                "query": ts_code
-                            }
-                        }
-                    }
-                ]
-            }
-        }
-    }
-
-    try:
-        ret = es.search(body=body, index=index_name)
-    except Exception:
-        return None
-
-    return ret["aggregations"]["trade_date"]["value"]
-
-
-def dump():
-    from elasticsearch.helpers import bulk
-    date_format = "%Y-%m-%dT%H:%M:%S.%f+0800"
-    es = es_client()
-    # print(es.search())
-    index_name = config["stock_index_name"]
-    hist_data = load_hist()
-
-    for code in hist_data:
-        print("开始上传股票: %s" % code)
-        data = hist_data[code]
-
-        bulk_lst = []
-        max_date = find_max_date(code, index_name)
-        if max_date:
-            max_date = datetime.fromtimestamp(max_date / 1000)
-            data = data[data.trade_date > max_date]
-
-        for idx, value in enumerate(data.values, start=1):
-            doc = {}
-            for col_name, v in zip(data.columns, value):
-                doc[col_name] = v
-
-            if doc["trade_date"] > max_date:
-                continue
-            doc["trade_date"] = doc["trade_date"].strftime(date_format)
-            doc_id = "-".join([doc["ts_code"], doc["trade_date"]])
-            bulk_lst.append({
-                            "_index": index_name,
-                            "_id": doc_id,
-                            "_type": "doc",
-                            "_source": doc,
-                            })
-
-            if idx % 500 == 0:
-                bulk(es, bulk_lst, stats_only=True)
-                bulk_lst = []
-
-        if bulk_lst:
-            bulk(es, bulk_lst, stats_only=True)
-
-
-def dump_index():
+def get_ts_client():
     import tushare as ts
-    from elasticsearch.helpers import bulk
-    date_format = "%Y-%m-%dT%H:%M:%S.%f+0800"
-    es = es_client()
-    token = config["token"]
-    index_name = config["index_index_name"]
+    ts.set_token(config["ts_token"])
 
-    ts.set_token(token)
-    data = ts.pro_bar(ts_code='000001.SH', asset='I', start_date=config["START_DATE"])
-    data.trade_date = pd.to_datetime(data.trade_date)
-    index_code = data.ts_code[0]
-
-    bulk_lst = []
-    max_date = find_max_date(index_code, index_name)
-    if max_date:
-        max_date = datetime.fromtimestamp(max_date / 1000)
-        data = data[data.trade_date > max_date]
-
-    for idx, value in enumerate(data.values, start=1):
-        doc = {}
-        for col_name, v in zip(data.columns, value):
-            doc[col_name] = v
-
-        doc["trade_date"] = doc["trade_date"].strftime(date_format)
-        doc_id = "-".join([doc["ts_code"], doc["trade_date"]])
-        bulk_lst.append({
-                        "_index": index_name,
-                        "_id": doc_id,
-                        "_type": "doc",
-                        "_source": doc,
-                        })
-
-        if idx % 500 == 0:
-            print(bulk(es, bulk_lst, stats_only=True))
-            bulk_lst = []
-
-    if bulk_lst:
-        print(bulk(es, bulk_lst, stats_only=True))
-
-
-if __name__ == "__main__":
-    print(find_max_date("000012.SZ", "stock"))
-    print(find_max_date("000001.SH", "index"))
+    return ts

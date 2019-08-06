@@ -15,11 +15,10 @@ import concurrent.futures as futures
 from ..settings import config
 
 
-curdir = path.dirname(path.abspath(__file__))
 # 方便直接调用
 START_DATE = config["START_DATE"]
 # END_DATE = ""
-DATA_DIR = config["DATA_DIR"]
+DATA_DIR = config["STOCK_DATA_DIR"]
 DAY_FORMAT = config["DAY_FORMAT"]
 MAX_TRY = config["MAX_TRY"]
 # (24 + 17) * 60 * 60
@@ -51,7 +50,7 @@ def code_gen(code_lst):
 
         fp = path.join(data_path, "%s.csv" % code)
 
-        if path.exists(fp):
+        if path.exists(fp) and False:
             df = pd.read_csv(fp, parse_dates=["trade_date"])
             latest_trade_date = max(df["trade_date"])
 
@@ -69,7 +68,7 @@ def code_gen(code_lst):
 
 
 def save_data(code, start_date, fp):
-    print("下载股票(%s)日线数据到 %s" % (code, fp))
+    print("从%s开始下载股票(%s)日线数据到 %s" % (start_date, code, fp))
 
     try:
         data = ts.pro_bar(ts_code=code, adj='qfq', start_date=start_date)
@@ -90,18 +89,18 @@ def save_data(code, start_date, fp):
     try:
         data.trade_date = pd.to_datetime(data.trade_date)
         data = data.sort_values("trade_date")
-        if path.exists(fp):
-            data.to_csv(fp, mode="a", header=False, index=False)
-        else:
-            data.to_csv(fp, index=False)
+        # if path.exists(fp):
+        #     data.to_csv(fp, mode="a", header=False, index=False)
+        # else:
+        data.to_csv(fp, index=False)
     except Exception:
         print("股票:%s 保存失败" % code)
 
 
-def main():
+def download():
     future_lst = []
     pool = ThreadPoolExecutor(3)
-    token = config["token"]
+    token = config["ts_token"]
     ts.set_token(token)
     pro = ts.pro_api(token)
 
@@ -124,4 +123,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    download()

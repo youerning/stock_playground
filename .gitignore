@@ -1,5 +1,5 @@
 *.db
-config.json
+config.yml
 *.pyc
 data/
 nbtest/

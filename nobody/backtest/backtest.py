@@ -4,6 +4,7 @@
 
 # import numpy as np
 # import pandas as pd
+import sys
 from abc import ABC, abstractmethod
 from collections import UserDict
 from itertools import chain
@@ -27,7 +28,9 @@ class Context(UserDict):
         for code, hist in self["feed"].items():
             df = hist[hist.index == tick]
             if len(df) == 1:
-                tick_data[code] = df.iloc[-1]
+                tick_data[code] = df.loc[tick]
+            if len(df) > 1:
+                sys.exit("历史数据有重复时间戳！终止运行")
 
         self["tick_data"] = tick_data
 

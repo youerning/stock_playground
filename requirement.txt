@@ -9,4 +9,3 @@ jupyter
 ipython
 elasticsearch
 bokeh
-# ta-lib
