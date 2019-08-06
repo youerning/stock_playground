@@ -3,7 +3,9 @@
 # @Email: 673125641@qq.com
 import json
 import os
+import sys
 from os import path
+from nobody.utils import load_hist
 from nobody.backtest import BackTest
 from nobody.reporter import Plotter
 from nobody.reporter import Html
@@ -48,7 +50,7 @@ class MyBackTest(BackTest):
             if hist["ma10"] > 1.03 * hist["ma20"]:
                 self.ctx.broker.buy(code, hist.close, 500, ttl=5)
 
-            if hist["ma10"] < 0.92 * hist["ma20"] and code in self.ctx.broker.position:
+            if hist["ma10"] < 0.98 * hist["ma20"] and code in self.ctx.broker.position:
                 self.ctx.broker.sell(code, hist.close, 200, ttl=1)
 
 
@@ -74,7 +76,6 @@ class MyBackTest(BackTest):
 
 
 if __name__ == '__main__':
-    from nobody.utils import load_hist
     feed = {}
 
     for code, hist in load_hist("000002.SZ"):
@@ -83,7 +84,8 @@ if __name__ == '__main__':
         hist["ma20"] = hist.close.rolling(20).mean()
         feed[code] = hist
 
-    # print(feed)
+    if not feed:
+        sys.exit("没有没有任何历史数据")
     mytest = MyBackTest(feed)
     mytest.start()
     order_lst = mytest.ctx.broker.order_hist_lst

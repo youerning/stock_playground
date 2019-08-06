@@ -33,7 +33,7 @@ config["MAX_TRY"] = 5
 config["UPDATE_INTERVAL"] = 41 * 60 * 60
 
 if path.exists("config.yml"):
-    with open("config.yml") as rf:
+    with open("config.yml", encoding="utf8") as rf:
         user_config = yaml.safe_load(rf)
         config.update(user_config)
 else:
