@@ -13,6 +13,7 @@ from os import path
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures as futures
 from ..settings import config
+from nobody.utils import get_ts_client
 
 
 # 方便直接调用

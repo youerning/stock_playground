@@ -1,2 +1,23 @@
 # 个人的tushare的token
 ts_token: <your_token>
+# ES_HOST: 
+#   - "192.168.56.102:9200"
+# # 股票索引名称
+# STOCK_INDEX_NAME: 'stock'
+# # 指数索引名称
+# INDEX_INDEX_NAME: "index"
+
+
+# # 数据保存配置
+# START_DATE: "2012-01-01"
+# # 数据目录
+# DATA_DIR: "data"
+# # 股票历史数据保存目录
+# STOCK_DATA_DIR: "data/stock"
+# # 股票指数历史数据保存目录
+# INDEX_DATA_DIR: "data/index"
+# DAY_FORMAT: "%Y%m%d"
+# MAX_TRY: 5
+# # (24 + 17) * 60 * 60
+# # 服务端每天 15-17更新时间
+# UPDATE_INTERVAL: 41 * 60 * 60
