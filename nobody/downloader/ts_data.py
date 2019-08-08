@@ -3,10 +3,10 @@
 # @Email: 673125641@qq.com
 
 # 下载日线数据
-import tushare as ts
 import pandas as pd
 import time
 import os
+import sys
 from datetime import datetime
 from datetime import timedelta
 from os import path
@@ -25,6 +25,8 @@ MAX_TRY = config["MAX_TRY"]
 # (24 + 17) * 60 * 60
 UPDATE_INTERVAL = config["UPDATE_INTERVAL"]
 pass_set = set()
+ts = get_ts_client()
+pro = ts.pro_api(config["ts_token"])
 
 
 def code_gen(code_lst):
@@ -70,6 +72,8 @@ def code_gen(code_lst):
 
 def save_data(code, start_date, fp):
     print("从%s开始下载股票(%s)日线数据到 %s" % (start_date, code, fp))
+    if not isinstance(start_date, str):
+        sys.exit("start_date类型必须是一个str")
 
     try:
         data = ts.pro_bar(ts_code=code, adj='qfq', start_date=start_date)
@@ -101,9 +105,6 @@ def save_data(code, start_date, fp):
 def download():
     future_lst = []
     pool = ThreadPoolExecutor(3)
-    token = config["ts_token"]
-    ts.set_token(token)
-    pro = ts.pro_api(token)
 
     print("开始下载...")
     data = pro.stock_basic(list_status='L', fields='ts_code,symbol,name,area,industry,list_date')

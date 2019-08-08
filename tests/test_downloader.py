@@ -23,9 +23,9 @@ class TestTsData(object):
     def test_save_data(self, tmp_path):
         tmp_file = tmp_path / "tmp.csv"
 
-        save_data("000001.SZ", self.start_date, open(tmp_file, "w"))
+        save_data("000001.SZ", "2018-01-03", tmp_file)
         print(open(tmp_file).read(20))
-        df = pd.read_csv(open(tmp_file, "r"), parse_dates=["trade_date"], index_col="trade_date")
+        df = pd.read_csv(tmp_file, parse_dates=["trade_date"], index_col="trade_date")
 
         assert df.index[0] == self.start_date
 
