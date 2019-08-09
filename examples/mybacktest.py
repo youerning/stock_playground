@@ -48,10 +48,10 @@ class MyBackTest(BackTest):
             #     self.ctx.broker.buy(code, hist.close, 100, ttl=5)
             #     self._first = False
             if hist["ma10"] > 1.03 * hist["ma20"]:
-                self.ctx.broker.buy(code, hist.close, 500, ttl=5)
+                self.ctx.broker.buy(code, 500)
 
             if hist["ma10"] < 0.98 * hist["ma20"] and code in self.ctx.broker.position:
-                self.ctx.broker.sell(code, hist.close, 200, ttl=1)
+                self.ctx.broker.sell(code, 200)
 
 
 # if __name__ == '__main__':

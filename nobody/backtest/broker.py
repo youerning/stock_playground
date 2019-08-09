@@ -276,6 +276,8 @@ class BackTestBroker(Base):
                 ""
             }
         """
+        if shares % 100 != 0:
+            raise ValueError("买入股票数量只能是100的整数倍")
         order = {
             "type": "buy",
             "code": code,
@@ -323,6 +325,9 @@ class BackTestBroker(Base):
                 ""
             }
         """
+        if shares % 100 != 0:
+            raise ValueError("买入股票数量只能是100的整数倍")
+
         if code not in self.position:
             return
 
