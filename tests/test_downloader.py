@@ -10,6 +10,10 @@ from nobody.downloader.ts_data import download
 from nobody.settings import config
 
 
+class FakeData:
+    ts_code = ["000001.SZ"]
+
+
 class TestTsData(object):
     def setup(self):
         self.ts = get_ts_client()
@@ -30,6 +34,11 @@ class TestTsData(object):
         assert df.index[0] == self.start_date
 
     @pytest.mark.skip(reason="not finished")
-    def test_download(self):
-        pass
+    def test_download(self, mocker):
+        # mock_max_try = mocker.patch.object("nobody.downloader.ts_data", "MAX_TRY", 1)
+        mocker.patch("nobody.downloader.ts_data.pro.stock_basic", return_value=FakeData)
+        mock_save = mocker.patch("nobody.downloader.ts_data.save_data")
+        download()
+
+        assert mock_save.called
 

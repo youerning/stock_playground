@@ -103,6 +103,7 @@ def save_data(code, start_date, fp):
 
 
 def download():
+    print(MAX_TRY)
     future_lst = []
     pool = ThreadPoolExecutor(3)
 

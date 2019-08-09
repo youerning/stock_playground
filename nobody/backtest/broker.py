@@ -160,9 +160,9 @@ class BackTestBroker(Base):
                     # 计算手续费等
                     new_cash = pos["shares"] * trade_price
                     commission = new_cash * self.cm_rate
-                    profit = new_cash - commission - (pos["shares"] * pos["price"])
                     if commission < 5:
                         commission = 5
+                    profit = new_cash - commission - (pos["shares"] * pos["price"])
 
                     deal_lst.append({
                                     "open_price": pos["price"],
@@ -180,9 +180,9 @@ class BackTestBroker(Base):
                     # 计算手续费等
                     new_cash = tmp * trade_price
                     commission = new_cash * self.cm_rate
-                    profit = new_cash - commission - (tmp * pos["price"])
                     if commission < 5:
                         commission = 5
+                    profit = new_cash - commission - (tmp * pos["price"])
 
                     deal_lst.append({
                                     "open_price": pos["price"],
@@ -236,7 +236,7 @@ class BackTestBroker(Base):
         self.order_lst.append(order)
         self.order_hist_lst.append(order)
 
-    def buy(self, code, price, shares, ttl=-1):
+    def buy(self, code, shares, price=None, ttl=-1):
         """
         限价提交买入订单
 
@@ -285,7 +285,7 @@ class BackTestBroker(Base):
         self.submit(order)
         return order
 
-    def sell(self, code, price, shares, ttl=-1):
+    def sell(self, code, shares, price=None, ttl=-1):
         """
         限价提交卖出订单
         ---------
