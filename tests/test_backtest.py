@@ -144,7 +144,7 @@ def test_sell_and_buy(mocker, backtest):
 
     assert buy_count == 6
     assert sell_count == 3
-    assert total_commission == 35
+    assert total_commission == 45
 
     assert backtest.stat.data.cash[-1] == 100000 - total_commission + 100 - 1100
     assert backtest.stat.data.stock_value[-1] == 1100

@@ -93,7 +93,7 @@ class BackTestBroker(Base):
 
         self.order_lst = new_order_lst
         for order in self.order_lst:
-            # 每一轮tick将ttl减一，由于控制订单超时
+            # 每一轮tick将ttl减一，用于控制订单超时
             order["ttl"] -= 1
             # 如果当前tick，该股票有报价
             if order["code"] in tick_data:
@@ -106,6 +106,9 @@ class BackTestBroker(Base):
         order_shares = order["shares"]
         stock_info = tick_data[order_code]
         stock_price = stock_info[self.deal_price]
+
+        if order_price is None:
+            order_price = stock_price
 
         if order["type"] == "buy" and order_price >= stock_price and order_shares >= 100:
             trade_price = stock_price
@@ -141,7 +144,7 @@ class BackTestBroker(Base):
             time_diff = self.ctx.now - order["date"]
             # 15:00 - 09:30 = 19800 secs
             # A股T+1交易
-            if time_diff.total_seconds() < 19800:
+            if time_diff.total_seconds() <= 19800:
                 return
 
             # 符合条件开始交易
@@ -153,7 +156,6 @@ class BackTestBroker(Base):
             remove_pos_lst = []
             for pos in self.position[order_code]:
                 if tmp == 0:
-                    order["ttl"] = 0
                     break
 
                 if pos["shares"] <= tmp:
@@ -197,11 +199,15 @@ class BackTestBroker(Base):
                     tmp = 0
                     self.cash = self.cash + new_cash - commission
 
+            # 防止刚好仓位为0并且tmp == 0
+            if tmp == 0:
+                order["ttl"] = 0
+
             # print(remove_pos_lst)
             for pos in remove_pos_lst:
                 self.position[order_code].remove(pos)
 
-            # 移除没有持仓的仓位
+            # 移除没有头寸的仓位
             if len(self.position[order_code]) == 0:
                 self.position.pop(order_code)
 
@@ -270,9 +276,6 @@ class BackTestBroker(Base):
                 ""
             }
         """
-        if price is None:
-            stock_info = self.ctx.tick_data[code]
-            price = stock_info[self.deal_price]
         order = {
             "type": "buy",
             "code": code,
@@ -322,10 +325,6 @@ class BackTestBroker(Base):
         """
         if code not in self.position:
             return
-
-        if price is None:
-            stock_info = self.ctx.tick_data[code]
-            price = stock_info[self.deal_price]
 
         order = {
             "type": "sell",
