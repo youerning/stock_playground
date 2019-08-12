@@ -33,7 +33,27 @@ class K(object):
         func = getattr(self, name)
         return func(df, **kwargs)
 
-    def common(self, df, height):
+    def common(self, df, height, ulh, llh):
+        """
+        识别单根k线的形态的通用接口
+
+        Parameters
+        ---------
+        df: pd.DataFrame
+            时间序列为index, 并且包含open, high, low, close, voloume字段名的DataFrame对象
+        height: float
+            实体的长度, 默认是最高与最低的距离是5%或以上
+        ulh: float
+            upper line height, 上影线的高度
+        llh: float
+            lower line height, 下影线的高度
+
+        Returns
+        ---------
+        list
+            包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
+        """
+
         pass
 
     def cst(self, df, height=5, lh=0.1):
@@ -52,7 +72,7 @@ class K(object):
         Returns
         ---------
         list
-          包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
+            包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
         """
 
     def szx(self, df):
