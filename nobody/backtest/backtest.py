@@ -30,7 +30,7 @@ class Context(UserDict):
             if len(df) == 1:
                 tick_data[code] = df.loc[tick]
             if len(df) > 1:
-                sys.exit("历史数据有重复时间戳！终止运行")
+                sys.exit("历史数据存在重复时间戳！终止运行")
 
         self["tick_data"] = tick_data
 

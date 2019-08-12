@@ -12,6 +12,7 @@
 -------
 持有过的股票走势图，并且标记买入点/卖出点
 """
+# import sys
 import matplotlib.pyplot as plt
 # import matplotlib as mpl
 
@@ -93,8 +94,8 @@ class Plotter(object):
                 if order["type"] == "buy":
                     for deal in order["deal_lst"]:
                         ax.annotate("",
-                                    xy=(deal["date"], deal["price"]),
-                                    xytext=(deal["date"], deal["price"] * 0.95),
+                                    xy=(deal["open_date"], deal["open_price"]),
+                                    xytext=(deal["open_date"], deal["open_price"] * 0.95),
                                     arrowprops=dict(facecolor="r",
                                                     alpha=0.3,
                                                     headlength=10,

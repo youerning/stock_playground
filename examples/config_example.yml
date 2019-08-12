@@ -1,5 +1,5 @@
 # 个人的tushare的token
-ts_token: <your_token>
+TS_TOKEN: <your_token>
 # ES_HOST: 
 #   - "192.168.56.102:9200"
 # # 股票索引名称

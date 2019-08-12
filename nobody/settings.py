@@ -32,12 +32,25 @@ config["MAX_TRY"] = 5
 # 服务端每天 15-17更新时间
 config["UPDATE_INTERVAL"] = 41 * 60 * 60
 
+# 配置文件优先级
+# 工作目录的config.yml > 家目录的.config.yml > settings.py
+home_path = os.environ["HOME"] or os.environ["HOMEPATH"]
+home_conf_path = path.join(home_path, ".config.yml")
+if path.exists(home_conf_path):
+    with open(home_conf_path, encoding="utf8") as rf:
+        user_config = yaml.safe_load(rf)
+        config.update(user_config)
+
+
 if path.exists("config.yml"):
     with open("config.yml", encoding="utf8") as rf:
         user_config = yaml.safe_load(rf)
         config.update(user_config)
-else:
-    sys.exit("必须在当前目录下配置config.yml")
+
+# TODO:
+# 可以选择pytdx数据源
+if "TS_TOKEN" not in config:
+    sys.exit("必须配置TS_TOKEN")
 
 if not path.exists(config["STOCK_DATA_DIR"]):
     os.mkdir(config["STOCK_DATA_DIR"])

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # @Author: youerning
 # @Email: 673125641@qq.com
-
 # from collections import defaultdict
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -35,12 +34,28 @@ class BackTestBroker(Base):
     由于回测的虚拟交易平台
 
     Parameters:
+    ----------
       cash:int
             初始资金
       cm_rate:float
             交易手续费
       deal_price:str
             用于回测的股价类型(open, high, low, close), 默认为close
+
+    回测示例
+                            buy     sell    pos         total
+    broker      2012-01-04
+    backtest    2012-01-04  1
+    broker      2012-01-05  1               +100        100
+    backtest    2012-01-05  2
+    broker      2012-01-06  2               +100        200
+    backtest    2012-01-06  3       4
+    broker      2012-01-09  3       4       +100/-200   100
+    backtest    2012-01-09  5
+    broker      2012-01-20  5               +100        100
+    backtest    2012-01-20  6       7
+    broker      2012-01-30  6       7       +100/-200   100
+    backtest    2012-01-30  8
     """
 
     def __init__(self, cash, cm_rate=0.0005, deal_price="close"):
@@ -61,6 +76,8 @@ class BackTestBroker(Base):
         # 持仓
         self.position = defaultdict(list)
         self.logger = logger
+        # 用于跟踪交易订单情况
+        self._id = 0
 
     def info(self, msg):
         self.logger.info(msg)
@@ -94,13 +111,17 @@ class BackTestBroker(Base):
         self.order_lst = new_order_lst
         for order in self.order_lst:
             # 每一轮tick将ttl减一，用于控制订单超时
-            order["ttl"] -= 1
+            if order["ttl"] > 0:
+                order["ttl"] -= 1
+
             # 如果当前tick，该股票有报价
             if order["code"] in tick_data:
                 self.execute(order, tick_data)
 
     def execute(self, order, tick_data):
         """执行有效状态的订单"""
+        # TODO:
+        # 可以将买卖逻辑抽离出来用额外的两个函数_buy,_sell函数单独处理
         order_code = order["code"]
         order_price = order["price"]
         order_shares = order["shares"]
@@ -127,8 +148,9 @@ class BackTestBroker(Base):
             if not self.ctx.bt.before_trade(order):
                 return
 
-            deal = {"price": stock_price,
-                    "date": self.ctx.now,
+            deal = {"open_id": order["id"],
+                    "open_price": stock_price,
+                    "open_date": self.ctx.now,
                     "commission": commission,
                     "shares": order["shares"]}
 
@@ -151,12 +173,32 @@ class BackTestBroker(Base):
             if not self.ctx.bt.before_trade(order):
                 return
 
+            # total_pos_shares = sum([pos["shares"] for pos in self.position[order_code]])
+            # if order_shares >= total_pos_shares:
+            #     order_shares -= total_pos_shares
+
+            #     if order_shares == 0:
+            #         order["ttl"] == 0
+
+            #     for pos in self.position[order_code]:
+            #         pass
+
+            #     # order["deal_lst"].extend(deal_lst)
+            #     self.position.pop(order_code)
+                self.ctx.bt.on_order_ok(order)
+
             tmp = order_shares
             deal_lst = []
             remove_pos_lst = []
+            # 当前计算手续费会不准确
             for pos in self.position[order_code]:
                 if tmp == 0:
                     break
+
+                time_diff = self.ctx.now - pos["open_date"]
+                # 防止对当天完成的交易进行交易
+                if time_diff.total_seconds() <= 19800:
+                    continue
 
                 if pos["shares"] <= tmp:
                     # 计算手续费等
@@ -164,13 +206,15 @@ class BackTestBroker(Base):
                     commission = new_cash * self.cm_rate
                     if commission < 5:
                         commission = 5
-                    profit = new_cash - commission - (pos["shares"] * pos["price"])
+                    profit = new_cash - commission - (pos["shares"] * pos["open_price"])
 
                     deal_lst.append({
-                                    "open_price": pos["price"],
+                                    "open_id": pos["open_id"],
+                                    "open_price": pos["open_price"],
+                                    "open_date": pos["open_date"],
+                                    "close_id": order["id"],
                                     "close_price": trade_price,
                                     "close_date": self.ctx.now,
-                                    "open_date": pos["date"],
                                     "commission": commission,
                                     "shares": pos["shares"],
                                     "profit": profit})
@@ -184,13 +228,15 @@ class BackTestBroker(Base):
                     commission = new_cash * self.cm_rate
                     if commission < 5:
                         commission = 5
-                    profit = new_cash - commission - (tmp * pos["price"])
+                    profit = new_cash - commission - (tmp * pos["open_price"])
 
                     deal_lst.append({
-                                    "open_price": pos["price"],
+                                    "open_id": pos["open_id"],
+                                    "open_price": pos["open_price"],
+                                    "open_date": pos["open_date"],
+                                    "close_id": order["id"],
                                     "close_price": trade_price,
                                     "close_date": self.ctx.now,
-                                    "open_date": pos["date"],
                                     "commission": commission,
                                     "shares": tmp,
                                     "profit": profit})
@@ -211,6 +257,7 @@ class BackTestBroker(Base):
             if len(self.position[order_code]) == 0:
                 self.position.pop(order_code)
 
+            order["shares"] = tmp
             order["deal_lst"].extend(deal_lst)
             self.ctx.bt.on_order_ok(order)
 
@@ -261,6 +308,7 @@ class BackTestBroker(Base):
         return:
           dict
              {
+                "id": 订单ID,
                 "type": 订单类型, "buy",
                 "code": 股票代码,
                 "date": 提交日期,
@@ -268,8 +316,10 @@ class BackTestBroker(Base):
                 "shares": 目标股份数量,
                 "price": 目标价格,
                 "deal_lst": 交易成功的历史数据，如
-                    [{"price": 成交价格,
-                      "date": 成交时间,
+                    [{
+                      "open_id": 订单ID,
+                      "open_price": 成交价格,
+                      "open_date": 成交时间,
                       "commission": 交易手续费,
                       "shares": 成交份额
                     }]
@@ -278,7 +328,10 @@ class BackTestBroker(Base):
         """
         if shares % 100 != 0:
             raise ValueError("买入股票数量只能是100的整数倍")
+
+        self._id += 1
         order = {
+            "id": self._id,
             "type": "buy",
             "code": code,
             "date": self.ctx.now,
@@ -308,6 +361,7 @@ class BackTestBroker(Base):
         return:
           dict
              {
+                "id": 订单ID,
                 "type": 订单类型, "sell",
                 "code": 股票代码,
                 "date": 提交日期,
@@ -315,10 +369,13 @@ class BackTestBroker(Base):
                 "shares": 目标股份数量,
                 "price": 目标价格,
                 "deal_lst": 交易成功的历史数据，如
-                    [{"open_price": 开仓价格,
+                    [{
+                      "open_id": 开仓订单ID,
+                      "open_price": 开仓价格,
+                      "open_date": 持仓时间,
                       "close_price": 成交价格,
                       "close_date": 成交时间,
-                      "open_date": 持仓时间,
+                      "close_id": 平仓订单ID,
                       "commission": 交易手续费,
                       "shares": 成交份额,
                       "profit": 交易收益}]
@@ -331,7 +388,14 @@ class BackTestBroker(Base):
         if code not in self.position:
             return
 
+        pos_date_lst = [pos["open_date"] for pos in self.position[code]]
+        time_diff = self.ctx.now - min(pos_date_lst)
+        if time_diff.total_seconds() <= 19800:
+            return
+
+        self._id += 1
         order = {
+            "id": self._id,
             "type": "sell",
             "code": code,
             "date": self.ctx.now,

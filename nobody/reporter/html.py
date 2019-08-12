@@ -81,7 +81,7 @@ class Html(object):
                     continue
                 if order["type"] == "buy":
                     for deal in order["deal_lst"]:
-                        x, y = deal["date"], deal["price"]
+                        x, y = deal["open_date"], deal["open_price"]
                         p.add_layout(Arrow(end=NormalHead(fill_color="red", fill_alpha=0.3, line_width=0, size=15),
                                            x_end=x, y_end=y, line_alpha=0, x_start=x, y_start=y - 10))
 

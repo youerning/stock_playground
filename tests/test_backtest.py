@@ -3,8 +3,14 @@
 # @Email: 673125641@qq.com
 import pytest
 import sys
+import json
+# from json import encoder
 from nobody.utils import load_hist
 from nobody.backtest import BackTest
+
+
+# # 解决float64变成字符串类型
+# encoder.FLOAT_REPR = lambda o: format(o, '.3f')
 
 
 class MyBackTest(BackTest):
@@ -42,7 +48,7 @@ def callchain(self, tick):
         for code, hist in tick_data.items():
             self.ctx.broker.buy(code, 100)
 
-    self.ctx.broker.sell(code, 2000, ttl=3)
+    self.ctx.broker.sell(code, 2000, ttl=2)
     self._first = False
 
 
@@ -132,18 +138,17 @@ def test_sell_and_buy(mocker, backtest):
     backtest.on_tick = bind_method
     backtest.start()
     order_hist_lst = backtest.ctx.broker.order_hist_lst
+    with open("orders.json", "w") as wf:
+        json.dump(order_hist_lst, wf, indent=4, default=str)
 
-    assert len(order_hist_lst) == 9
+    assert len(order_hist_lst) == 8
 
     buy_count = len([order for order in order_hist_lst if order["type"] == "buy"])
     sell_count = len([order for order in order_hist_lst if order["type"] == "sell"])
     total_commission = sum([deal["commission"] for order in order_hist_lst for deal in order["deal_lst"]])
-    import json
-    with open("orders.json", "w") as wf:
-        json.dump(order_hist_lst, wf, indent=4, default=str)
 
     assert buy_count == 6
-    assert sell_count == 3
+    assert sell_count == 2
     assert total_commission == 45
 
     assert backtest.stat.data.cash[-1] == 100000 - total_commission + 100 - 1100

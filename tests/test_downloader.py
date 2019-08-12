@@ -41,4 +41,3 @@ class TestTsData(object):
         download()
 
         assert mock_save.called
-
