@@ -26,7 +26,7 @@ MAX_TRY = config["MAX_TRY"]
 UPDATE_INTERVAL = config["UPDATE_INTERVAL"]
 pass_set = set()
 ts = get_ts_client()
-pro = ts.pro_api(config["ts_token"])
+pro = ts.pro_api(config["TS_TOKEN"])
 
 
 def code_gen(code_lst):
@@ -103,7 +103,6 @@ def save_data(code, start_date, fp):
 
 
 def download():
-    print(MAX_TRY)
     future_lst = []
     pool = ThreadPoolExecutor(3)
 

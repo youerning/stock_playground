@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import pandas as pd
+import tushare as ts
 from glob import glob
 from os import path
 from ..settings import config
@@ -96,7 +97,12 @@ def load_all_hist():
 
 
 def get_ts_client():
-    import tushare as ts
-    ts.set_token(config["ts_token"])
+    ts.set_token(config["TS_TOKEN"])
+
+    return ts
+
+
+def get_pro_client():
+    ts.set_token(config["TS_TOKEN"])
 
     return ts

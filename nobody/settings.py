@@ -34,7 +34,7 @@ config["UPDATE_INTERVAL"] = 41 * 60 * 60
 
 # 配置文件优先级
 # 工作目录的config.yml > 家目录的.config.yml > settings.py
-home_path = os.environ["HOME"] or os.environ["HOMEPATH"]
+home_path = os.environ.get("HOME") or os.environ.get("HOMEPATH")
 home_conf_path = path.join(home_path, ".config.yml")
 if path.exists(home_conf_path):
     with open(home_conf_path, encoding="utf8") as rf:
