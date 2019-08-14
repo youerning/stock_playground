@@ -33,28 +33,35 @@ class K(object):
         func = getattr(self, name)
         return func(df, **kwargs)
 
-    def common(self, df, height, ulh, llh):
+    def get_shape(self, bar):
         """
-        识别单根k线的形态的通用接口
+        获取单个k线的基本信息，如上影线高度，下影线高度，实体高度(正值表明上涨，反之下跌)
 
         Parameters
         ---------
-        df: pd.DataFrame
+        bar: pandas.core.series.Series
             时间序列为index, 并且包含open, high, low, close, voloume字段名的DataFrame对象
-        height: float
-            实体的长度, 默认是最高与最低的距离是5%或以上
-        ulh: float
-            upper line height, 上影线的高度
-        llh: float
-            lower line height, 下影线的高度
-
         Returns
         ---------
-        list
-            包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
+        tuple
+            (上影线长度, 下影线长度, 实体长度)
         """
+        # height 实体的长度
+        # ulh upper line height, 上影线的高度
+        # llh lower line height, 下影线的高度
 
-        pass
+        height = bar.high - bar.low
+        # 虽然代码行数多了四行，但是open, close只需要比较一次
+        if bar.open > bar.close:
+            ulh = bar.high - bar.open
+            llh = bar.close - bar.low
+        else:
+            ulh = bar.high - bar.close
+            llh = bar.open - bar.low
+        # ulh = bar.high - max([bar.open, bar.close])
+        # llh = min([bar.open, bar.close]) - bar.low
+
+        return ulh, llh, height
 
     def cst(self, df, height=5, lh=0.1):
         """
