@@ -185,11 +185,12 @@ class BackTestBroker(Base):
 
             #     # order["deal_lst"].extend(deal_lst)
             #     self.position.pop(order_code)
-                self.ctx.bt.on_order_ok(order)
+            #     self.ctx.bt.on_order_ok(order)
 
             tmp = order_shares
             deal_lst = []
             remove_pos_lst = []
+            commission = 0
             # 当前计算手续费会不准确
             for pos in self.position[order_code]:
                 if tmp == 0:
@@ -203,11 +204,7 @@ class BackTestBroker(Base):
                 if pos["shares"] <= tmp:
                     # 计算手续费等
                     new_cash = pos["shares"] * trade_price
-                    commission = new_cash * self.cm_rate
-                    if commission < 5:
-                        commission = 5
-                    profit = new_cash - commission - (pos["shares"] * pos["open_price"])
-
+                    commission += new_cash * self.cm_rate
                     deal_lst.append({
                                     "open_id": pos["open_id"],
                                     "open_price": pos["open_price"],
@@ -215,21 +212,16 @@ class BackTestBroker(Base):
                                     "close_id": order["id"],
                                     "close_price": trade_price,
                                     "close_date": self.ctx.now,
-                                    "commission": commission,
+                                    "commission": None,
                                     "shares": pos["shares"],
-                                    "profit": profit})
+                                    "profit": None})
 
                     tmp -= pos["shares"]
                     remove_pos_lst.append(pos)
-                    self.cash = self.cash + new_cash - commission
                 else:
                     # 计算手续费等
                     new_cash = tmp * trade_price
-                    commission = new_cash * self.cm_rate
-                    if commission < 5:
-                        commission = 5
-                    profit = new_cash - commission - (tmp * pos["open_price"])
-
+                    commission += new_cash * self.cm_rate
                     deal_lst.append({
                                     "open_id": pos["open_id"],
                                     "open_price": pos["open_price"],
@@ -237,13 +229,12 @@ class BackTestBroker(Base):
                                     "close_id": order["id"],
                                     "close_price": trade_price,
                                     "close_date": self.ctx.now,
-                                    "commission": commission,
+                                    "commission": None,
                                     "shares": tmp,
-                                    "profit": profit})
+                                    "profit": None})
 
                     pos["shares"] -= tmp
                     tmp = 0
-                    self.cash = self.cash + new_cash - commission
 
             # 防止刚好仓位为0并且tmp == 0
             if tmp == 0:
@@ -258,6 +249,18 @@ class BackTestBroker(Base):
                 self.position.pop(order_code)
 
             order["shares"] = tmp
+            if commission < 5:
+                commission = 5
+
+            deal_shares = sum([deal["shares"] for deal in deal_lst])
+            for deal in deal_lst:
+                deal["commission"] = commission * (deal["shares"] / deal_shares)
+                deal["profit"] = (deal["close_price"] - deal["open_price"]) * deal["shares"] - deal["commission"]
+                new_cash = deal["shares"] * deal["close_price"]
+                self.cash = self.cash + new_cash
+
+            self.cash -= commission
+
             order["deal_lst"].extend(deal_lst)
             self.ctx.bt.on_order_ok(order)
 
@@ -276,6 +279,12 @@ class BackTestBroker(Base):
     @property
     def assets_value(self):
         return self.cash + self.stock_value
+
+    def get_shares(self, code):
+        """返回指定股票代码的持仓数量"""
+        if code not in self.position:
+            return 0
+        return sum([pos["shares"] for pos in self.position[code]])
 
     def get_drapdown(self):
         """返回最大回撤"""

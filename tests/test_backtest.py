@@ -147,9 +147,10 @@ def test_sell_and_buy(mocker, backtest):
     sell_count = len([order for order in order_hist_lst if order["type"] == "sell"])
     total_commission = sum([deal["commission"] for order in order_hist_lst for deal in order["deal_lst"]])
 
+    print(backtest.stat.data)
     assert buy_count == 6
     assert sell_count == 2
-    assert total_commission == 45
+    assert total_commission == 35
 
     assert backtest.stat.data.cash[-1] == 100000 - total_commission + 100 - 1100
     assert backtest.stat.data.stock_value[-1] == 1100

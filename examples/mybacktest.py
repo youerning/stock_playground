@@ -103,5 +103,5 @@ if __name__ == '__main__':
     plotter = Plotter(feed, stats, order_lst)
     plotter.report("report/report.png")
 
-    html = Html(feed, stats, order_lst)
-    html.report("report/report.html")
+    # html = Html(feed, stats, order_lst)
+    # html.report("report/report.html")
