@@ -29,6 +29,7 @@ class Context(UserDict):
             df = hist[hist.index == tick]
             if len(df) == 1:
                 tick_data[code] = df.loc[tick]
+                self.latest_price[code] = df.loc[tick][self.broker.deal_price]
             if len(df) > 1:
                 sys.exit("历史数据存在重复时间戳！终止运行")
 
@@ -98,6 +99,8 @@ class Scheduler(object):
         self.ctx["trade_cal"] = trade_cal
 
     def run(self):
+        # 缓存每只股票的最新价格
+        self.ctx["latest_price"] = {}
         # runner指存在可调用的initialize, finish, run(tick)的对象
         runner_lst = list(chain(self._pre_hook_lst, self._runner_lst, self._post_hook_lst))
         # 循环开始前为broker, backtest, hook等实例绑定ctx对象及调用其initialize方法

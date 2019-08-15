@@ -266,12 +266,9 @@ class BackTestBroker(Base):
 
     @property
     def stock_value(self):
-        now = self.ctx.now
         value = 0
         for code in self.position:
-            hist = self.ctx["feed"][code]
-            latest_date = hist.index[hist.index <= now][-1]
-            latest_price = hist.loc[latest_date][self.deal_price]
+            latest_price = self.ctx.latest_price[code]
             for pos in self.position[code]:
                 value += pos["shares"] * latest_price
 
