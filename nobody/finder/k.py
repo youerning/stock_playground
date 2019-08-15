@@ -8,14 +8,15 @@ class K(object):
 
     def find(self, df, name, **kwargs):
         """
-        发现指定的k线形态
+        发现指定的K线形态
 
         Parameters
         ---------
         df: pd.DataFrame
             时间序列为index, 并且包含open, high, low, close, voloume字段名的DataFrame对象
-        name:str
-            k线形态名称, 可用形态长实体(cst), 十字星(szx), 长影线(cyx), 吞噬(ts), 包孕(by), 窗口(ck)
+        name:str or function
+            k线形态名称, 可用形态: 长实体(cst), 十字星(szx), 长影线(cyx), 吞噬(ts), 包孕(by), 窗口(ck)
+            也可以传入一个接受df为参数的函数
         `**kwds` : keywords
             传递给调用方法的关键字参数
 
@@ -40,11 +41,11 @@ class K(object):
         Parameters
         ---------
         bar: pandas.core.series.Series
-            时间序列为index, 并且包含open, high, low, close, voloume字段名的DataFrame对象
+            时间序列为index, 并且包含open, high, low, close, voloume字段名的Series对象
         Returns
         ---------
         tuple
-            (上影线长度, 下影线长度, 实体长度)
+            (浮动范围, 上影线长度, 下影线长度, 实体长度)
         """
         # height 实体的长度
         # ulh upper line height, 上影线的高度
@@ -52,6 +53,7 @@ class K(object):
 
         height = bar.high - bar.low
         # 虽然代码行数多了四行，但是open, close只需要比较一次
+        chg = bar.open - bar.close
         if bar.open > bar.close:
             ulh = bar.high - bar.open
             llh = bar.close - bar.low
@@ -61,7 +63,7 @@ class K(object):
         # ulh = bar.high - max([bar.open, bar.close])
         # llh = min([bar.open, bar.close]) - bar.low
 
-        return ulh, llh, height
+        return chg, ulh, llh, height
 
     def cst(self, df, height=5, lh=0.1):
         """

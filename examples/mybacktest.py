@@ -7,8 +7,8 @@ import sys
 from os import path
 from nobody.utils import load_hist
 from nobody.backtest import BackTest
-from nobody.reporter import Plotter
-from nobody.reporter import Html
+# from nobody.reporter import Plotter
+# from nobody.reporter import Html
 
 
 class MyBackTest(BackTest):
@@ -100,8 +100,8 @@ if __name__ == '__main__':
     print("年化收益: {:.3f}% ".format(stats.annual_return * 100))
     print("夏普比率: {:.3f} ".format(stats.sharpe))
 
-    plotter = Plotter(feed, stats, order_lst)
-    plotter.report("report/report.png")
+    # plotter = Plotter(feed, stats, order_lst)
+    # plotter.report("report/report.png")
 
     # html = Html(feed, stats, order_lst)
     # html.report("report/report.html")

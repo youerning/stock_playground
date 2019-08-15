@@ -4,6 +4,7 @@
 
 from abc import ABC, abstractmethod
 import pandas as pd
+import numpy as np
 
 
 class Base(ABC):
@@ -23,20 +24,20 @@ class Stat(Base):
         self._date_hist = []
         self._cash_hist = []
         self._stk_val_hist = []
-        self._ast_val_hist = []
         self._returns_hist = []
 
     def run(self, tick):
         self._date_hist.append(tick)
         self._cash_hist.append(self.ctx.broker.cash)
         self._stk_val_hist.append(self.ctx.broker.stock_value)
-        self._ast_val_hist.append(self.ctx.broker.assets_value)
+        # self.data.assets_value.append(self.ctx.broker.assets_value)
 
     @property
     def data(self):
+        ast_val_hist = np.array(self._cash_hist) + np.array(self._stk_val_hist)
         df = pd.DataFrame({"cash": self._cash_hist,
                            "stock_value": self._stk_val_hist,
-                           "assets_value": self._ast_val_hist}, index=self._date_hist)
+                           "assets_value": ast_val_hist}, index=self._date_hist)
         df.index.name = "date"
         return df
 
@@ -48,7 +49,7 @@ class Stat(Base):
         dropdown_lst = []
         dropdown_index_lst = []
 
-        for idx, val in enumerate(self._ast_val_hist):
+        for idx, val in enumerate(self.data.assets_value):
             if val >= high_val:
                 if high_val == low_val or high_index >= low_index:
                     high_val = low_val = val
@@ -101,8 +102,8 @@ class Stat(Base):
         参考: https://wiki.mbalib.com/zh-tw/%E5%B9%B4%E5%8C%96%E6%94%B6%E7%9B%8A%E7%8E%87
         """
         D = 365
-        c = self._ast_val_hist[0]
-        v = self._ast_val_hist[-1]
+        c = self.data.assets_value[0]
+        v = self.data.assets_value[-1]
         days = (self._date_hist[-1] - self._date_hist[0]).days
 
         ret = (v / c) ** (D / days) - 1
@@ -111,14 +112,14 @@ class Stat(Base):
     @property
     def cum_ret(self):
         """累计收益率"""
-        ret_lst = pd.Series(self._ast_val_hist).pct_change().cumsum()
+        ret_lst = pd.Series(self.data.assets_value).pct_change().cumsum()
 
         return ret_lst
 
     @property
     def total_returns(self):
-        init_val = self._ast_val_hist[0]
-        final_val = self._ast_val_hist[-1]
+        init_val = self.data.assets_value[0]
+        final_val = self.data.assets_value[-1]
         return (final_val - init_val) / init_val
 
     @property
@@ -138,7 +139,7 @@ class Stat(Base):
         ----
         """
         # 有可能返回nan, 而nan 类型是float，bool值为True
-        return_std = (pd.Series(self._ast_val_hist, index=self._date_hist)
+        return_std = (pd.Series(self.data.assets_value, index=self._date_hist)
                         .pct_change()
                         .groupby(pd.Grouper(freq="W"))
                         .sum().std())

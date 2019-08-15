@@ -270,7 +270,8 @@ class BackTestBroker(Base):
         value = 0
         for code in self.position:
             hist = self.ctx["feed"][code]
-            latest_price = hist[hist.index <= now].iloc[-1][self.deal_price]
+            latest_date = hist.index[hist.index <= now][-1]
+            latest_price = hist.loc[latest_date][self.deal_price]
             for pos in self.position[code]:
                 value += pos["shares"] * latest_price
 
