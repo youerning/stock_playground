@@ -98,11 +98,7 @@ class BackTestBroker(Base):
         new_order_lst = []
         for order in self.order_lst:
             if order["ttl"] == 0:
-                deal_shares = 0
-                for deal in order["deal_lst"]:
-                    deal_shares += deal["shares"]
-
-                if deal_shares != order["shares"]:
+                if not order["done"]:
                     self.ctx.bt.on_order_timeout(order)
                 continue
 
@@ -131,7 +127,7 @@ class BackTestBroker(Base):
         if order_price is None:
             order_price = stock_price
 
-        if order["type"] == "buy" and order_price >= stock_price and order_shares >= 100:
+        if order["type"] == "buy" and order_price >= stock_price:
             trade_price = stock_price
 
             cost = trade_price * order["shares"]
@@ -154,11 +150,17 @@ class BackTestBroker(Base):
                     "commission": commission,
                     "shares": order["shares"]}
 
+            pos = {"open_id": order["id"],
+                   "open_price": stock_price,
+                   "open_date": self.ctx.now,
+                   "shares": order["shares"]}
+
             self.cash = self.cash - cost - commission
             order["deal_lst"].append(deal)
-            self.position[order_code].append(deal.copy())
+            self.position[order_code].append(pos)
 
             order["ttl"] = 0
+            order["done"] = True
             self.ctx.bt.on_order_ok(order)
 
         elif order["type"] == "sell" and order_price <= stock_price and order_code in self.position:
@@ -239,6 +241,7 @@ class BackTestBroker(Base):
             # 防止刚好仓位为0并且tmp == 0
             if tmp == 0:
                 order["ttl"] = 0
+                order["done"] = True
 
             # print(remove_pos_lst)
             for pos in remove_pos_lst:
@@ -322,6 +325,7 @@ class BackTestBroker(Base):
                 "ttl": 存活时间, 当ttl等于0时则超时，往后不会在执行
                 "shares": 目标股份数量,
                 "price": 目标价格,
+                "done": 是否完成, 默认为False,
                 "deal_lst": 交易成功的历史数据，如
                     [{
                       "open_id": 订单ID,
@@ -335,6 +339,8 @@ class BackTestBroker(Base):
         """
         if shares % 100 != 0:
             raise ValueError("买入股票数量只能是100的整数倍")
+        if shares <= 0:
+            raise ValueError("买入股票数量必须大于0")
 
         self._id += 1
         order = {
@@ -345,6 +351,7 @@ class BackTestBroker(Base):
             "ttl": ttl,
             "shares": shares,
             "price": price,
+            "done": False,
             "deal_lst": []
         }
         self.submit(order)
@@ -375,6 +382,7 @@ class BackTestBroker(Base):
                 "ttl": 存活时间, 当ttl等于0时则超时，往后不会在执行
                 "shares": 目标股份数量,
                 "price": 目标价格,
+                "done": 是否完成, 默认为False,
                 "deal_lst": 交易成功的历史数据，如
                     [{
                       "open_id": 开仓订单ID,
@@ -409,6 +417,7 @@ class BackTestBroker(Base):
             "ttl": ttl,
             "shares": shares,
             "price": price,
+            "done": False,
             "deal_lst": []
         }
         self.submit(order)

@@ -5,7 +5,9 @@ import json
 import os
 import sys
 from os import path
+from datetime import datetime
 from nobody.utils import load_hist
+from nobody.utils.utils import load_n_hist
 from nobody.backtest import BackTest
 # from nobody.reporter import Plotter
 # from nobody.reporter import Html
@@ -78,12 +80,21 @@ class MyBackTest(BackTest):
 if __name__ == '__main__':
     feed = {}
 
-    for code, hist in load_hist("000002.SZ"):
+    print(datetime.now())
+    # for code, hist in load_hist():
+    #     # hist = hist.iloc[:30]
+    #     hist["ma10"] = hist.close.rolling(10).mean()
+    #     hist["ma20"] = hist.close.rolling(20).mean()
+    #     feed[code] = hist
+
+    for code, hist in load_n_hist(3).items():
         # hist = hist.iloc[:30]
         hist["ma10"] = hist.close.rolling(10).mean()
         hist["ma20"] = hist.close.rolling(20).mean()
         feed[code] = hist
 
+    print(datetime.now())
+    # print(len(feed))
     if not feed:
         sys.exit("没有没有任何历史数据")
     mytest = MyBackTest(feed)

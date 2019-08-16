@@ -96,6 +96,18 @@ def load_all_hist():
     return data
 
 
+def load_n_hist(n):
+    """获取指定数量的历史数据"""
+    data = {}
+    c = 0
+    for code, hist in load_hist():
+        c += 1
+        data[code] = hist
+        if c >= n:
+            break
+    return data
+
+
 def get_ts_client():
     ts.set_token(config["TS_TOKEN"])
 
