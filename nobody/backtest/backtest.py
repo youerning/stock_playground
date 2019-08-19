@@ -25,6 +25,8 @@ class Context(UserDict):
         tick_data = {}
 
         # 获取当前所有有报价的股票报价
+        # 好像没法更快了
+        # loc大概306 µs ± 9.28 µs per loop
         for code, hist in self["feed"].items():
             df = hist[hist.index == tick]
             if len(df) == 1:

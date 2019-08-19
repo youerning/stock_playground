@@ -45,25 +45,24 @@ class K(object):
         Returns
         ---------
         tuple
-            (浮动范围, 上影线长度, 下影线长度, 实体长度)
+            (浮动数值, 上影线长度, 下影线长度, 实体长度)
         """
         # height 实体的长度
         # ulh upper line height, 上影线的高度
         # llh lower line height, 下影线的高度
 
-        height = bar.high - bar.low
+        entity = (bar.close - bar.open) / bar.open
         # 虽然代码行数多了四行，但是open, close只需要比较一次
-        chg = bar.open - bar.close
         if bar.open > bar.close:
-            ulh = bar.high - bar.open
-            llh = bar.close - bar.low
+            ulh = (bar.high - bar.open) / bar.open
+            llh = (bar.low - bar.close) / bar.close
         else:
-            ulh = bar.high - bar.close
-            llh = bar.open - bar.low
+            ulh = (bar.high - bar.close) / bar.close
+            llh = (bar.low - bar.open) / bar.open
         # ulh = bar.high - max([bar.open, bar.close])
         # llh = min([bar.open, bar.close]) - bar.low
 
-        return chg, ulh, llh, height
+        return entity, ulh, llh
 
     def cst(self, df, height=5, lh=0.1):
         """
@@ -83,6 +82,7 @@ class K(object):
         list
             包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
         """
+        pass
 
     def szx(self, df):
         """
@@ -98,6 +98,7 @@ class K(object):
         list
           包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
         """
+        pass
 
     def cyx(self, df):
         """
@@ -113,6 +114,41 @@ class K(object):
         list
           包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
         """
+        pass
+
+    def djx(self, df, ulh=0.005, llh=0.025, entity_max=0.02, entity_min=0.005, status="white"):
+        """
+        寻找吊颈线形态
+
+        Parameters
+        ---------
+        df: pd.DataFrame
+            时间序列为index, 并且包含open, high, low, close, voloume字段名的DataFrame对象
+
+        lh: float
+            吊颈线的线长百分比
+        entity: float
+            实体的长度的百分比
+        status: str
+            吊颈线的状态, black代表阴线，white代表阳线, 默认为阴线
+
+        Returns
+        ---------
+        list
+          包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
+        """
+        choices = {"black": -1, "white": 1}
+        if status not in choices:
+            raise ValueError("status参数错误")
+
+        res = []
+        for idx, bar in df.iterrows():
+            bar_entity, bar_ulh, bar_llh = self.get_shape(bar)
+            cond = [bar_entity >= entity_min, bar_entity <= entity_max, bar_ulh <= ulh, abs(bar_llh) >= llh]
+            if all(cond):
+                res.append(idx)
+
+        return res
 
     def ts(self, df):
         """
@@ -128,6 +164,7 @@ class K(object):
         list
           包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
         """
+        pass
 
     def by(self, df):
         """
@@ -143,6 +180,7 @@ class K(object):
         list
           包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
         """
+        pass
 
     def ck(self, df):
         """
@@ -158,4 +196,5 @@ class K(object):
         list
           包含pandas.Timestamp对象的列表, 时间戳对象指向形态的时间发生位置
         """
+        pass
 

@@ -85,16 +85,6 @@ class BackTestBroker(Base):
     def run(self, tick):
         tick_data = self.ctx["tick_data"]
 
-        # 移除position中持仓量为空的股票
-        # remove_code_lst = []
-        # for code in self.position:
-        #     if len(self.position[code]) == 0:
-        #         remove_code_lst.append(code)
-
-        # for code in remove_code_lst:
-        #     self.position.pop(code)
-
-        # 移除超时订单
         new_order_lst = []
         for order in self.order_lst:
             if order["ttl"] == 0:
@@ -102,10 +92,6 @@ class BackTestBroker(Base):
                     self.ctx.bt.on_order_timeout(order)
                 continue
 
-            new_order_lst.append(order)
-
-        self.order_lst = new_order_lst
-        for order in self.order_lst:
             # 每一轮tick将ttl减一，用于控制订单超时
             if order["ttl"] > 0:
                 order["ttl"] -= 1
@@ -113,6 +99,9 @@ class BackTestBroker(Base):
             # 如果当前tick，该股票有报价
             if order["code"] in tick_data:
                 self.execute(order, tick_data)
+
+            new_order_lst.append(order)
+        self.order_lst = new_order_lst
 
     def execute(self, order, tick_data):
         """执行有效状态的订单"""
@@ -191,16 +180,17 @@ class BackTestBroker(Base):
 
             tmp = order_shares
             deal_lst = []
-            remove_pos_lst = []
             commission = 0
-            # 当前计算手续费会不准确
+            new_pos_lst = []
             for pos in self.position[order_code]:
                 if tmp == 0:
-                    break
+                    new_pos_lst.append(pos)
+                    continue
 
                 time_diff = self.ctx.now - pos["open_date"]
                 # 防止对当天完成的交易进行交易
                 if time_diff.total_seconds() <= 19800:
+                    new_pos_lst.append(pos)
                     continue
 
                 if pos["shares"] <= tmp:
@@ -219,7 +209,6 @@ class BackTestBroker(Base):
                                     "profit": None})
 
                     tmp -= pos["shares"]
-                    remove_pos_lst.append(pos)
                 else:
                     # 计算手续费等
                     new_cash = tmp * trade_price
@@ -237,18 +226,16 @@ class BackTestBroker(Base):
 
                     pos["shares"] -= tmp
                     tmp = 0
+                    new_pos_lst.append(pos)
 
             # 防止刚好仓位为0并且tmp == 0
             if tmp == 0:
                 order["ttl"] = 0
                 order["done"] = True
 
-            # print(remove_pos_lst)
-            for pos in remove_pos_lst:
-                self.position[order_code].remove(pos)
-
-            # 移除没有头寸的仓位
-            if len(self.position[order_code]) == 0:
+            if new_pos_lst:
+                self.position[order_code] = new_pos_lst
+            else:
                 self.position.pop(order_code)
 
             order["shares"] = tmp

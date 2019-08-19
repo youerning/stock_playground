@@ -4,6 +4,7 @@
 import logging
 import os
 import sys
+import numpy as np
 import pandas as pd
 import tushare as ts
 from glob import glob
@@ -36,7 +37,7 @@ def init_log(name, level=30, log_to_file=False):
     return logger
 
 
-def load_hist(ts_code=None, start_date=None, end_date=None, func=None):
+def load_hist(ts_code=None, start_date=None, end_date=None, func=None, random=True):
     """加载本地历史数据
 
     Parameters:
@@ -54,11 +55,16 @@ def load_hist(ts_code=None, start_date=None, end_date=None, func=None):
             截至时间字符串, 比如2019-01-01
     func: function
             用于过滤历史数据的函数, 接受一个Datarame对象, 并返回过滤的DataFrame对象
+    random: bool
+            是否打乱加载的股票顺序, 默认为True
     """
     db_glob_lst = glob(path.join(data_path, "*.csv"))
     if len(db_glob_lst) == 0:
         print("当前数据目录没有任何历史数据文件")
         return
+
+    if random:
+        np.random.shuffle(db_glob_lst)
 
     for fp in db_glob_lst:
         fp_ts_code = path.basename(fp)[:-4]

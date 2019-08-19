@@ -9,7 +9,7 @@ from datetime import datetime
 from nobody.utils import load_hist
 from nobody.utils.utils import load_n_hist
 from nobody.backtest import BackTest
-# from nobody.reporter import Plotter
+from nobody.reporter import Plotter
 # from nobody.reporter import Html
 
 
@@ -80,20 +80,20 @@ class MyBackTest(BackTest):
 if __name__ == '__main__':
     feed = {}
 
-    print(datetime.now())
+    # print(datetime.now())
     # for code, hist in load_hist():
     #     # hist = hist.iloc[:30]
     #     hist["ma10"] = hist.close.rolling(10).mean()
     #     hist["ma20"] = hist.close.rolling(20).mean()
     #     feed[code] = hist
 
-    for code, hist in load_n_hist(3).items():
+    for code, hist in load_n_hist(1).items():
         # hist = hist.iloc[:30]
         hist["ma10"] = hist.close.rolling(10).mean()
         hist["ma20"] = hist.close.rolling(20).mean()
         feed[code] = hist
 
-    print(datetime.now())
+    # print(datetime.now())
     # print(len(feed))
     if not feed:
         sys.exit("没有没有任何历史数据")
@@ -111,8 +111,8 @@ if __name__ == '__main__':
     print("年化收益: {:.3f}% ".format(stats.annual_return * 100))
     print("夏普比率: {:.3f} ".format(stats.sharpe))
 
-    # plotter = Plotter(feed, stats, order_lst)
-    # plotter.report("report/report.png")
+    plotter = Plotter(feed, stats, order_lst)
+    plotter.report("report/report.png")
 
     # html = Html(feed, stats, order_lst)
     # html.report("report/report.html")

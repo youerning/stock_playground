@@ -10,3 +10,4 @@ dist/
 *.egg-info
 *.7z
 .cache/
+*json
