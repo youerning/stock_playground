@@ -23,9 +23,9 @@ config["START_DATE"] = "2012-01-01"
 # 数据目录
 config["DATA_DIR"] = "data"
 # 股票历史数据保存目录
-config["STOCK_DATA_DIR"] = "data/stock"
+config["STOCK_DATA_DIR"] = "stock"
 # 股票指数历史数据保存目录
-config["INDEX_DATA_DIR"] = "data/index"
+config["INDEX_DATA_DIR"] = "index"
 config["DAY_FORMAT"] = "%Y%m%d"
 config["MAX_TRY"] = 5
 # (24 + 17) * 60 * 60
@@ -47,13 +47,14 @@ if path.exists("config.yml"):
         user_config = yaml.safe_load(rf)
         config.update(user_config)
 
-# TODO:
-# 可以选择pytdx数据源
-if "TS_TOKEN" not in config:
-    sys.exit("必须配置TS_TOKEN")
 
-if not path.exists(config["STOCK_DATA_DIR"]):
-    os.mkdir(config["STOCK_DATA_DIR"])
+config["STOCK_DATA_PATH"] = path.join(config["DATA_DIR"], config["STOCK_DATA_DIR"])
+config["INDEX_DATA_PATH"] = path.join(config["DATA_DIR"], config["INDEX_DATA_DIR"])
 
-if not path.exists(config["INDEX_DATA_DIR"]):
-    os.mkdir(config["INDEX_DATA_DIR"])
+if not path.exists(config["STOCK_DATA_PATH"]):
+    os.mkdir(config["STOCK_DATA_PATH"])
+
+if not path.exists(config["INDEX_DATA_PATH"]):
+    os.mkdir(config["INDEX_DATA_PATH"])
+
+

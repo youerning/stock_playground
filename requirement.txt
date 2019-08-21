@@ -9,3 +9,5 @@ jupyter
 ipython
 elasticsearch
 bokeh
+dash
+dingtalkchatbot

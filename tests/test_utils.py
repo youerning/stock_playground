@@ -16,7 +16,7 @@ class TestUtils(object):
     def test_load_hist(self):
         assert len(list(load_hist("000001.SZ"))) == 1
         assert len(list(load_hist(["000001.SZ", "000002.SZ"]))) == 2
-        assert len(list(load_hist())) == len(glob(path.join(config["STOCK_DATA_DIR"], "*csv")))
+        assert len(list(load_hist())) == len(glob(path.join(config["STOCK_DATA_PATH"], "*csv")))
 
         data = list(load_hist("000001.SZ", start_date=self.start_date, end_date=self.end_date))
         hist = data[0][1]

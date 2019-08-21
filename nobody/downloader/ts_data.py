@@ -16,10 +16,13 @@ from ..settings import config
 from nobody.utils import get_ts_client
 
 
+if "TS_TOKEN" not in config:
+    sys.exit("必须配置TS_TOKEN才能下载历史数据")
+
 # 方便直接调用
 START_DATE = config["START_DATE"]
 # END_DATE = ""
-DATA_DIR = config["STOCK_DATA_DIR"]
+DATA_DIR = config["STOCK_DATA_PATH"]
 DAY_FORMAT = config["DAY_FORMAT"]
 MAX_TRY = config["MAX_TRY"]
 # (24 + 17) * 60 * 60
@@ -70,7 +73,7 @@ def code_gen(code_lst):
             yield code, START_DATE, fp
 
 
-def save_data(code, start_date, fp):
+def save_data(code, start_date, fp, freq="D"):
     print("从%s开始下载股票(%s)日线数据到 %s" % (start_date, code, fp))
     if not isinstance(start_date, str):
         sys.exit("start_date类型必须是一个str")

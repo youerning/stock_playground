@@ -2,16 +2,13 @@
 # @Author: youerning
 # @Email: 673125641@qq.com
 """
-构图规划 并且标明支撑/阻力位
-000001.SH trend candlestick amd volume bar
-399001.SZ trend candlestick amd volume bar
-399006.SZ trend candlestick amd volume bar
-
+构图规划
 历史涨停跌停持平趋势柱状图
 当日涨跌分布图
+历史涨跌停柱状图
 
-今日涨跌停表
-行业 股票数量 平均浮动 最大涨幅 上涨数量 平仓数量 下跌数量
+今日涨跌分布表
+行业 股票数量 平均浮动 最大涨幅 最大跌幅 持平数量 涨停数量 跌停数量
 
 """
 import dash
@@ -20,6 +17,7 @@ import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from os import path
 from nobody.utils import get_ts_client
 from nobody.utils import load_hist
@@ -27,7 +25,7 @@ from nobody.utils import load_hist
 # 设置相关变量
 ts = get_ts_client()
 pro = ts.pro_api()
-start_date = "2018-01-01"
+start_date = "2015-01-01"
 external_stylesheets = ['https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css']
 sh_index_path = path.join("data", "index", "000001.SH.csv")
 feed = {}
@@ -49,6 +47,9 @@ for code, hist in load_hist(start_date="2018-01-01"):
 # 上证指数日线数据
 if path.exists(sh_index_path):
     sh_index = pd.read_csv(sh_index_path, parse_dates=["trade_date"], index_col="trade_date")
+    sh_index["ma10"] = sh_index.close.rolling(10).mean()
+    sh_index["ma20"] = sh_index.close.rolling(20).mean()
+    sh_index["ma150"] = sh_index.close.rolling(150).mean()
 else:
     sh_index = ts.pro_bar(ts_code='000001.SH', asset='I', start_date=start_date)
     sh_index.trade_date = pd.to_datetime(sh_index.trade_date)
@@ -99,33 +100,50 @@ for idx, dt in enumerate(l10["x_range"]):
 
 # 绘图
 # sh_index 蜡烛图
-sh_index_graph = dcc.Graph(id="sh_index",
-                           figure={"data": [go.Candlestick(x=sh_index.index,
-                                                           open=sh_index.open,
-                                                           high=sh_index.high,
-                                                           low=sh_index.low,
-                                                           close=sh_index.close)
-                                            ],
-                                   "layout": go.Layout(xaxis={"title": "Date"},
-                                                       yaxis={"title": "Price"},
-                                                       title="SH Index",
-                                                       height=600)})
+fig = make_subplots(rows=2, cols=1, shared_xaxes=True, subplot_titles=("上证指数", "交易量"))
+fig.add_trace(
+    go.Candlestick(x=sh_index.index,
+                   open=sh_index.open,
+                   high=sh_index.high,
+                   low=sh_index.low,
+                   close=sh_index.close,
+                   name="上证指数"),
+    row=1, col=1
+)
+fig.add_trace(go.Bar(x=sh_index.index, y=sh_index.vol, name="交易量"),
+              row=2, col=1)
 
-# 历史涨跌幅
+fig.update_layout(height=600)
+
+# sh_index_graph = dcc.Graph(id="sh_index",
+#                            figure={"data": [go.Candlestick(x=sh_index.index,
+#                                                            open=sh_index.open,
+#                                                            high=sh_index.high,
+#                                                            low=sh_index.low,
+#                                                            close=sh_index.close),
+#                                             ],
+#                                    "layout": go.Layout(xaxis={"title": "Date"},
+#                                                        yaxis={"title": "Price"},
+#                                                        title="SH Index",
+#                                                        height=600)})
+
+sh_index_graph = dcc.Graph(id="sh_index", figure=fig)
+
+# 最近十天历史涨跌幅
 hist_zd_graph = dcc.Graph(id="hist_zd",
                           figure={"data": [{"x": l10["x_range"], "y": l10["limit_up"], "name": "limit_up", "type": "bar"},
                                            {"x": l10["x_range"], "y": l10["limit_down"], "name": "limit_down", "type": "bar"},
                                            {"x": l10["x_range"], "y": l10["limit_nothing"], "name": "limit_nothing", "type": "bar"},
                                            ],
-                                  "layout": go.Layout(xaxis={"title": "Date"},
-                                                      yaxis={"title": "Count"},
-                                                      title="hist zd")})
+                                  "layout": go.Layout(xaxis={"title": "时间"},
+                                                      yaxis={"title": "数量"},
+                                                      title="历史涨停跌停持平数量")})
 
-# 浮动分布
+# 当日浮动分布
 hist_dist_graph = dcc.Graph(id="historam",
                             figure={"data": [go.Histogram(x=pct_chg_lst)],
-                                    "layout": go.Layout(xaxis={"title": "hist"},
-                                                        yaxis={"title": "pct_chg"})})
+                                    "layout": go.Layout(xaxis={"title": "涨跌幅"},
+                                                        yaxis={"title": "数量"})})
 
 
 # 数据表格
@@ -140,8 +158,6 @@ table_graph = dash_table.DataTable(
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(children=[
-                      html.H1("市场全景图"),
-                      html.H2("主要指数走势"),
                       sh_index_graph,
                       hist_zd_graph,
                       hist_dist_graph,

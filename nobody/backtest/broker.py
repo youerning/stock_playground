@@ -288,22 +288,22 @@ class BackTestBroker(Base):
 
     def buy(self, code, shares, price=None, ttl=-1):
         """
-        限价提交买入订单
+        提交买入订单
 
+        Parameters
         ---------
-        Parameters:
-          code:str
-                股票代码
-          price:float or None
-                最高可买入的价格, 如果为None则按市价买入
-          shares:int
-                买入股票数量
-          ttl:int
-                订单允许存在的最大时间，默认为-1，永不超时
+        code : str
+            股票代码
+        price : float or None
+            最高可买入的价格, 如果为None则按市价买入
+        shares : int
+            买入股票数量
+        ttl : int
+            订单允许存在的最大时间，默认为-1，永不超时
 
+        Returns
         ---------
-        return:
-          dict
+        dict
              {
                 "id": 订单ID,
                 "type": 订单类型, "buy",
@@ -346,21 +346,22 @@ class BackTestBroker(Base):
 
     def sell(self, code, shares, price=None, ttl=-1):
         """
-        限价提交卖出订单
-        ---------
-        Parameters:
-          code:str
-                股票代码
-          price:float or None
-                最低可卖出的价格, 如果为None则按市价卖出
-          shares:int
-                卖出股票数量
-          ttl:int
-                订单允许存在的最大时间，默认为-1，永不超时
+        提交卖出订单
 
+        Parameters
         ---------
-        return:
-          dict
+        code : str
+            股票代码
+        price : float or None
+            最低可卖出的价格, 如果为None则按市价卖出
+        shares : int
+            卖出股票数量
+        ttl : int
+            订单允许存在的最大时间，默认为-1，永不超时
+
+        Returns
+        ---------
+        dict
              {
                 "id": 订单ID,
                 "type": 订单类型, "sell",
@@ -410,24 +411,29 @@ class BackTestBroker(Base):
         self.submit(order)
         return order
 
-    # def sell_all(self, code, price, ttl=-1):
-    #     """以指定价格卖出当前所有持仓股票
+    def sell_all(self, code, price=None, ttl=1):
+        """
+        清空所有持仓
 
-    #     Args:
-    #         code: 股票代码
-    #         price: 最低可卖出的价格
+        Parameters
+        ---------
+        Parameters:
+        code:str
+            股票代码
+        price:float or None
+            最低可卖出的价格, 如果为None则按市价卖出
 
-    #     Returns:
-    #         返回提交的订单
+        Returns
+        ---------
+        dict
+            返回提交的订单
 
-    #     """
-    #     shares = 0
-    #     if code in self.position:
-    #         for pos in self.position[code]:
-    #             shares += pos["shares"]
-    #         return self.sell(code, price, shares, ttl)
-    #     else:
-    #         self.logger.warning("并不持有股票: %s" % code)
+        """
+        if code not in self.position:
+            return
+
+        shares = self.get_shares(code)
+        return self.sell(code, shares)
 
     # def stop_loss(self, code, price):
     #     """止损

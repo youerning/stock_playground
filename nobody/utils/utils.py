@@ -12,7 +12,7 @@ from os import path
 from ..settings import config
 
 
-data_path = config["STOCK_DATA_DIR"]
+data_path = config["STOCK_DATA_PATH"]
 
 
 def init_log(name, level=30, log_to_file=False):
@@ -35,6 +35,23 @@ def init_log(name, level=30, log_to_file=False):
 
         logger.addHandler(file_handler)
     return logger
+
+
+def read_csv(fp):
+    """读取通过tushare保存的csv文件
+
+    Parameters:
+    ----------
+      fp:str
+            csv文件路径
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+    """
+    hist = pd.read_csv(fp, parse_dates=["trade_date"], index_col="trade_date")
+
+    return hist
 
 
 def load_hist(ts_code=None, start_date=None, end_date=None, func=None, random=True):
