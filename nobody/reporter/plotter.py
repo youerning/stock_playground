@@ -59,7 +59,7 @@ class Plotter(object):
                              self.stat.sharpe,
                              cm_in_netprofit)
         fig = plt.figure(figsize=(12, 16))
-        fig.subplots_adjust(wspace=0.3, hspace=0.3)
+        # fig.subplots_adjust(wspace=0.1, hspace=0.1, top=1)
         code_lst = {order["code"] for order in self.order_lst}
         rows = len(code_lst) + 2
 #         date_formatter = mpl.dates.DateFormatter("%Y-%m-%d")
@@ -85,10 +85,12 @@ class Plotter(object):
         ax_hist2.set_title("持仓时间分布")
 
         # 绘制持仓股票走势图
-        for idx, code in enumerate(code_lst, start=rows):
+        for idx, code in enumerate(code_lst, start=3):
             ax = fig.add_subplot(rows, 1, idx)
+            ax.get_xaxis().set_visible(False)
             hist = self.feed[code]
-            hist.close.plot(ax=ax, sharex=False)
+            # max_close = max(hist.close)
+            hist.close.plot(ax=ax, sharex=False, title="%s" % code)
             for order in self.order_lst:
                 if len(order["deal_lst"]) == 0:
                     continue

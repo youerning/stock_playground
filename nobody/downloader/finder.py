@@ -46,7 +46,7 @@ def find_dense():
             dense_ret = dense_ret.append(ret)
     # print(ret)
     # print(len(dense_ret))
-    print("dense count: %s" % count) 
+    print("dense count: %s" % count)
     dense_ret.to_csv("dense.csv", index=False)
 
 

@@ -4,3 +4,4 @@
 from .utils import load_hist
 from .utils import load_all_hist
 from .utils import get_ts_client
+from .utils import load_from_path

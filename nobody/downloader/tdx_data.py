@@ -9,12 +9,12 @@ from os import path
 
 
 cur_dir = path.abspath(path.dirname(__file__))
-data_path = path.join("data", "stock")
-api = TdxHq_API(heartbeat=True, auto_retry=True) 
+data_path = path.join("data", "tdx", "stock")
+api = TdxHq_API(heartbeat=True, auto_retry=True, multithread=True) 
 host = '119.147.212.81'
 port = 7709
 hy_file = path.join(cur_dir, 'stock.cfg')
-years = 5
+years = 3
 
 
 
@@ -38,17 +38,19 @@ def download():
         for item in stk_lst:
             market = item[0]
             code = item[1]
+            fp = path.join(data_path, "%s.csv" % code)
+            # if path.exists(fp):
+            #     continue
             data = []
             for i in range(years):
                 new_data = api.get_security_bars(TDXParams.KLINE_TYPE_1HOUR, 
-                                                 int(market), code, (years-i)*800, 800)
+                                                 int(market), code, (years - i - 1)*800, 800)
 
                 if new_data:
                     data += new_data
                 # data += api.get_index_bars(9, 1, code, (9-i)*200, 200)
             
             if data:
-                fp = path.join(data_path, "%s.csv" % code)
                 api.to_df(data).to_csv(fp, index=False)
                 print("download %s|%s successfully" % (market, code))
             else:

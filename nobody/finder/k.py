@@ -34,7 +34,8 @@ class K(object):
         func = getattr(self, name)
         return func(df, **kwargs)
 
-    def get_shape(self, bar):
+    @staticmethod
+    def get_shape(bar):
         """
         获取单个k线的基本信息，如上影线高度，下影线高度，实体高度(正值表明上涨，反之下跌)
 
@@ -143,7 +144,7 @@ class K(object):
 
         res = []
         for idx, bar in df.iterrows():
-            bar_entity, bar_ulh, bar_llh = self.get_shape(bar)
+            bar_entity, bar_ulh, bar_llh = K.get_shape(bar)
             cond = [bar_entity >= entity_min, bar_entity <= entity_max, bar_ulh <= ulh, abs(bar_llh) >= llh]
             if all(cond):
                 res.append(idx)

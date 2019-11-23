@@ -54,27 +54,60 @@ def read_csv(fp):
     return hist
 
 
-def load_hist(ts_code=None, start_date=None, end_date=None, func=None, random=True):
+def load_from_path(fp_lst, code=None, start_date=None, end_date=None, func=None,):
+    """加载文件列表的股票数据
+
+    Parameters:
+        code: str or list
+                单个或者多个股票代码的列表
+        fp_lst: list
+                数据文件列表
+        start_date: str
+                起始时间字符串, 比如2018-01-01
+        end_date: str
+                截至时间字符串, 比如2019-01-01
+        func: function
+                用于过滤历史数据的函数, 接受一个Datarame对象, 并返回过滤的DataFrame对象
+    """
+    for fp in fp_lst:
+        fp_code = path.basename(fp)[:-4]
+        if code:
+            if fp_code == code:
+                hist = pd.read_csv(fp)
+            else:
+                continue
+        else:
+            hist = pd.read_csv(fp)
+
+        if func:
+            hist = func(hist)
+
+        # if start_date:
+        #     start_date = pd.to_datetime(start_date)
+        #     hist = hist[hist.index >= start_date]
+
+        # if end_date:
+        #     end_date = pd.to_datetime(end_date)
+        #     hist = hist[hist.index <= end_date]
+        yield fp_code, hist
+
+
+def load_hist(ts_code=None, start_date=None, end_date=None, func=None, random=True, typ="tdx"):
     """加载本地历史数据
 
     Parameters:
-      cash:int
-            初始资金
-      cm_rate:float
-            交易手续费
-      deal_price:str
-            用于回测的股价类型(open, high, low, close), 默认为close
-    ts_code: str or list
+        ts_code: str or list
                 单个或者多个股票代码的列表
-    start_date: str
-            起始时间字符串, 比如2018-01-01
-    end_date: str
-            截至时间字符串, 比如2019-01-01
-    func: function
-            用于过滤历史数据的函数, 接受一个Datarame对象, 并返回过滤的DataFrame对象
-    random: bool
-            是否打乱加载的股票顺序, 默认为True
+        start_date: str
+                起始时间字符串, 比如2018-01-01
+        end_date: str
+                截至时间字符串, 比如2019-01-01
+        func: function
+                用于过滤历史数据的函数, 接受一个Datarame对象, 并返回过滤的DataFrame对象
+        random: bool
+                是否打乱加载的股票顺序, 默认为True
     """
+
     db_glob_lst = glob(path.join(data_path, "*.csv"))
     if len(db_glob_lst) == 0:
         print("当前数据目录没有任何历史数据文件")

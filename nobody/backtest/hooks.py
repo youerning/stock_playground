@@ -26,18 +26,21 @@ class Stat(Base):
         self._stk_val_hist = []
         self._ast_val_hist = []
         self._returns_hist = []
+        self._position_hist = []
 
     def run(self, tick):
         self._date_hist.append(tick)
         self._cash_hist.append(self.ctx.broker.cash)
         self._stk_val_hist.append(self.ctx.broker.stock_value)
         self._ast_val_hist.append(self.ctx.broker.assets_value)
+        self._position_hist.append(len(self.ctx.broker.position))
 
     @property
     def data(self):
         df = pd.DataFrame({"cash": self._cash_hist,
                            "stock_value": self._stk_val_hist,
-                           "assets_value": self._ast_val_hist}, index=self._date_hist)
+                           "assets_value": self._ast_val_hist, 
+                           "pos_count": self._position_hist}, index=self._date_hist)
         df.index.name = "date"
         return df
 

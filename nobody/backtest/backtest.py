@@ -5,9 +5,13 @@
 # import numpy as np
 # import pandas as pd
 import sys
+import numpy as np
 from abc import ABC, abstractmethod
 from collections import UserDict
 from itertools import chain
+from datetime import datetime
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Hour, Day
 from .broker import Base as BrokerBase
 from .broker import BackTestBroker
 from .utils import logger
@@ -40,13 +44,13 @@ class Context(UserDict):
     def get_hist(self, code=None):
         """如果不指定code, 获取截至到当前时间的所有股票的历史数据"""
         if code is None:
-            hist = {}
+            ret = {}
             for code, hist in self["feed"].items():
-                hist[code] = hist[hist.index <= self.now]
+                ret[code] = hist[hist.index <= self.now]
+            return ret
         elif code in self.feed:
-            return {code: self.feed[code]}
-
-        return hist
+            hist = self.feed[code]
+            return {code: hist[hist.index <= self.now]}
 
 
 class Scheduler(object):
@@ -153,9 +157,12 @@ class BackTest(ABC):
                 以时间戳为元素的序列
       enable_stat:bool
                 开启统计功能
+      deal_type: str
+                成交类型, now代表当前bar提交订单，next_bar代表下一个bar提交订单
     """
 
-    def __init__(self, feed, cash=100000, broker=None, trade_cal=None, enable_stat=True):
+    def __init__(self, feed, cash=100000, broker=None, trade_cal=None, enable_stat=True, deal_type="now"):
+        self.feed = feed
         self._sch = Scheduler()
         self._logger = logger
 
@@ -164,11 +171,18 @@ class BackTest(ABC):
         else:
             broker = BackTestBroker(cash)
 
-        # 因为broker对象在backtest对象之前加入scheduler对象，所以broker会在backtest的下一个tick处理backtest提交的订单
-        self._sch.add_runner(broker)
-        self._sch.add_broker(broker)
-        self._sch.add_runner(self)
-        self._sch.add_backtest(self)
+        if deal_type == "next_bar":
+            # 因为broker对象在backtest对象之前加入scheduler对象，所以broker会在backtest的下一个tick处理backtest提交的订单
+            self._sch.add_runner(broker)
+            self._sch.add_broker(broker)
+            self._sch.add_runner(self)
+            self._sch.add_backtest(self)
+        elif deal_type == "now":
+            self._sch.add_runner(self)
+            self._sch.add_backtest(self)
+            self._sch.add_runner(broker)
+            self._sch.add_broker(broker)
+
         # self._sch.add_runner(broker)
         # self._sch.add_broker(broker)
         self._sch.add_feed(feed)
@@ -177,8 +191,18 @@ class BackTest(ABC):
         if enable_stat:
             self._sch.add_hook(self.stat)
 
-        if trade_cal:
+        if trade_cal is not None:
             self._sch.add_trade_cal(trade_cal)
+
+        # self.is_market_start = True
+        # 用于判断是否为开市
+        self.last_tick = None
+
+        # 历史resample数据的缓存
+        self.hist_cache = {}
+
+        # 设置默认freq
+        self.default_frq = to_offset(list(feed.values())[0].index.to_series().diff().min())
 
     def info(self, msg):
         self._logger.info(msg)
@@ -188,6 +212,12 @@ class BackTest(ABC):
 
     def initialize(self):
         """在回测开始前的初始化"""
+        pass
+    
+    def on_market_start(self):
+        pass
+
+    def on_market_close(self):
         pass
 
     def before_on_tick(self, tick):
@@ -217,9 +247,22 @@ class BackTest(ABC):
         pass
 
     def run(self, tick):
+        self.current_day = datetime(self.ctx.now.year, self.ctx.now.month, self.ctx.now.day)
+        if not self.last_tick:
+            self.last_tick = self.ctx.now
+            self.on_market_start()
+
+        diff = self.ctx.now - self.last_tick
+        # 15:00 - 09:30 = 19800 secs
+        if diff.total_seconds() > 19800:
+            self.last_tick = self.ctx.now
+            self.on_market_start()
+
         self.before_on_tick(tick)
         self.on_tick(tick)
         self.after_on_tick(tick)
+        if self.ctx.now.hour >= 15:
+            self.on_market_close()
 
     def start(self):
         self._sch.run()
@@ -230,3 +273,44 @@ class BackTest(ABC):
         回测实例必须实现的方法，并编写自己的交易逻辑
         """
         pass
+    
+    def freq_history(self, code, columns, size, agg_args, freq=None):
+        """
+        获取feed中历史数据
+
+        Parameters
+        ---------
+        code : str
+            股票代码
+        columns : list
+            历史数据中需要的字段
+        size : int
+            历史数量的大小
+        frq : str
+            时间周期
+        
+        Returns
+        ---------
+        """
+        # from pandas.tseries.frequencies import to_offset
+        # pd.to_timedelta(to_offset('30T'))
+        # Timedelta('0 days 00:30:00')
+        # agg_args={"open": "first", "high": "max", "low": "min", "close": "last", "vol": "sum"}
+        if freq is None:
+            df = self.feed[code][columns]
+            return df[df.index <= self.ctx.now].tail(size)
+
+        if freq in self.hist_cache and code in self.hist_cache[freq]:
+            df = self.hist_cache[freq][code][columns]
+            return df[df.index <= self.ctx.now].tail(size)
+
+        if freq not in self.hist_cache:
+            self.hist_cache[freq] = {}
+
+        df = self.feed[code][columns]
+        df = df.resample(freq).agg(agg_args)
+        df = df.replace(0, np.nan)
+        df = df.dropna()
+
+        self.hist_cache[freq][code] = df
+        return  df[df.index <= self.ctx.now].tail(size)
