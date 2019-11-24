@@ -26,8 +26,8 @@ class Context(UserDict):
     def set_currnet_time(self, tick):
         self["now"] = tick
 
+        # list(filter(self.faster_loop, self["feed"].items()))
         tick_data = {}
-
         # 获取当前所有有报价的股票报价
         # 好像没法更快了
         # loc大概306 µs ± 9.28 µs per loop
@@ -38,6 +38,20 @@ class Context(UserDict):
                 self.latest_price[code] = df.loc[tick][self.broker.deal_price]
             if len(df) > 1:
                 sys.exit("历史数据存在重复时间戳！终止运行")
+
+        self["tick_data"] = tick_data
+
+    def faster_loop(self, code_hist):
+        tick = self["now"]
+        code = code_hist[0]
+        hist = code_hist[1]
+        tick_data = {}
+        df = hist[hist.index == tick]
+        if len(df) == 1:
+            tick_data[code] = df.loc[tick]
+            self.latest_price[code] = df.loc[tick][self.broker.deal_price]
+        if len(df) > 1:
+            sys.exit("历史数据存在重复时间戳！终止运行")
 
         self["tick_data"] = tick_data
 
@@ -104,6 +118,11 @@ class Scheduler(object):
         """增加交易日历"""
         self.ctx["trade_cal"] = trade_cal
 
+    def faster_loop(self, tick):
+        self.ctx.set_currnet_time(tick)
+        for runner in self.loop_run_lst:
+            runner.run(tick)
+
     def run(self):
         # 缓存每只股票的最新价格
         self.ctx["latest_price"] = {}
@@ -123,10 +142,13 @@ class Scheduler(object):
         # 首先调用所有pre-hook的run方法
         # 然后调用broker,backtest的run方法
         # 最后调用post-hook的run方法
-        for tick in self.ctx.trade_cal:
-            self.ctx.set_currnet_time(tick)
-            for runner in runner_lst:
-                runner.run(tick)
+        # filter 大概比for循环快一倍
+        self.loop_run_lst = runner_lst
+        list(filter(self.faster_loop, self.ctx.trade_cal))
+        # for tick in self.ctx.trade_cal:
+        #     self.ctx.set_currnet_time(tick)
+        #     for runner in runner_lst:
+        #         runner.run(tick)
             # for pre_hook in self._pre_hook_lst:
             #     pre_hook.run(tick)
 
