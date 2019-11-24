@@ -61,16 +61,17 @@ class Plotter(object):
         fig = plt.figure(figsize=(12, 16))
         # fig.subplots_adjust(wspace=0.1, hspace=0.1, top=1)
         code_lst = {order["code"] for order in self.order_lst}
-        rows = len(code_lst) + 2
-#         date_formatter = mpl.dates.DateFormatter("%Y-%m-%d")
+        # rows = len(code_lst) + 2
+        rows = 2
+        # date_formatter = mpl.dates.DateFormatter("%Y-%m-%d")
 
         # 绘制收益走势图
         ax_trend = fig.add_subplot(rows, 1, 1)
         ax_trend.set_title(title)
         self.stat.data.assets_value.plot(ax=ax_trend, sharex=False)
         ax_trend.set_xlabel("")
-#         ax_trend.plot_date(self.stat.index, self.stat.assets_value)
-#         ax_trend.xaxis.set_major_fomatter(date_formatter)
+        # ax_trend.plot_date(self.stat.index, self.stat.assets_value)
+        # ax_trend.xaxis.set_major_fomatter(date_formatter)
 
         # 绘制直方图
         ax_hist1 = fig.add_subplot(rows, 2, 3)
@@ -84,33 +85,33 @@ class Plotter(object):
         ax_hist1.set_title("收益分布")
         ax_hist2.set_title("持仓时间分布")
 
-        # 绘制持仓股票走势图
-        for idx, code in enumerate(code_lst, start=3):
-            ax = fig.add_subplot(rows, 1, idx)
-            ax.get_xaxis().set_visible(False)
-            hist = self.feed[code]
-            # max_close = max(hist.close)
-            hist.close.plot(ax=ax, sharex=False, title="%s" % code)
-            for order in self.order_lst:
-                if len(order["deal_lst"]) == 0:
-                    continue
-                if order["type"] == "buy":
-                    for deal in order["deal_lst"]:
-                        ax.annotate("",
-                                    xy=(deal["open_date"], deal["open_price"]),
-                                    xytext=(deal["open_date"], deal["open_price"] * 0.95),
-                                    arrowprops=dict(facecolor="r",
-                                                    alpha=0.3,
-                                                    headlength=10,
-                                                    width=10))
+        # # 绘制持仓股票走势图
+        # for idx, code in enumerate(code_lst, start=3):
+        #     ax = fig.add_subplot(rows, 1, idx)
+        #     ax.get_xaxis().set_visible(False)
+        #     hist = self.feed[code]
+        #     # max_close = max(hist.close)
+        #     hist.close.plot(ax=ax, sharex=False, title="%s" % code)
+        #     for order in self.order_lst:
+        #         if len(order["deal_lst"]) == 0:
+        #             continue
+        #         if order["type"] == "buy":
+        #             for deal in order["deal_lst"]:
+        #                 ax.annotate("",
+        #                             xy=(deal["open_date"], deal["open_price"]),
+        #                             xytext=(deal["open_date"], deal["open_price"] * 0.95),
+        #                             arrowprops=dict(facecolor="r",
+        #                                             alpha=0.3,
+        #                                             headlength=10,
+        #                                             width=10))
 
-                if order["type"] == "sell":
-                    for deal in order["deal_lst"]:
-                        ax.annotate("",
-                                    xy=(deal["close_date"], deal["close_price"]),
-                                    xytext=(deal["close_date"], deal["close_price"] * 1.05),
-                                    arrowprops=dict(facecolor="g",
-                                                    alpha=0.3,
-                                                    headlength=10,
-                                                    width=10))
+        #         if order["type"] == "sell":
+        #             for deal in order["deal_lst"]:
+        #                 ax.annotate("",
+        #                             xy=(deal["close_date"], deal["close_price"]),
+        #                             xytext=(deal["close_date"], deal["close_price"] * 1.05),
+        #                             arrowprops=dict(facecolor="g",
+        #                                             alpha=0.3,
+        #                                             headlength=10,
+        #                                             width=10))
         return fig
