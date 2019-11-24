@@ -69,6 +69,7 @@ class BackTestBroker(Base):
                     },...]}
         """
         self.cash = cash
+        self.available_cash = cash
         self.cm_rate = cm_rate
         self.order_lst = []
         self.order_hist_lst = []
@@ -145,6 +146,7 @@ class BackTestBroker(Base):
                    "shares": order["shares"]}
 
             self.cash = self.cash - cost - commission
+            self.available_cash = self.cash
             order["deal_lst"].append(deal)
             self.position[order_code].append(pos)
 
@@ -248,9 +250,10 @@ class BackTestBroker(Base):
                 deal["profit"] = (deal["close_price"] - deal["open_price"]) * deal["shares"] - deal["commission"]
                 new_cash = deal["shares"] * deal["close_price"]
                 self.cash = self.cash + new_cash
+            
 
             self.cash -= commission
-
+            self.available_cash = self.cash
             order["deal_lst"].extend(deal_lst)
             self.ctx.bt.on_order_ok(order)
 
@@ -285,6 +288,8 @@ class BackTestBroker(Base):
         self.order_hist_lst.append(order)
 
     def buy(self, code, shares, price=None, msg=None, ttl=15):
+        # TODO:
+        # 设置可用资金或者是订单提交过程同步, 不然会有提交过多的购买订单，而没有现金购买
         """
         提交买入订单
 
@@ -329,8 +334,17 @@ class BackTestBroker(Base):
             raise ValueError("买入股票数量只能是100的整数倍")
         if shares <= 0:
             raise ValueError("买入股票数量必须大于0")
-
+        
         self._id += 1
+        if price is None:
+            price = self.ctx.latest_price[code]
+        
+        cost = shares * price
+        commission = cost * self.cm_rate
+        if commission < 5:
+            commission = 5
+
+        self.available_cash = self.available_cash - cost - commission
         order = {
             "id": self._id,
             "type": "buy",
@@ -403,6 +417,8 @@ class BackTestBroker(Base):
             return
 
         self._id += 1
+        if price is None:
+            price = self.ctx.latest_price[code]
         order = {
             "id": self._id,
             "type": "sell",
