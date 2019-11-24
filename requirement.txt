@@ -11,3 +11,5 @@ elasticsearch
 bokeh
 dash
 dingtalkchatbot
+pyyaml
+pytdx
