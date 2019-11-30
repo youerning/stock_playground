@@ -269,6 +269,7 @@ class BackTest(ABC):
         pass
 
     def run(self, tick):
+        # 后期移除
         self.current_day = datetime(self.ctx.now.year, self.ctx.now.month, self.ctx.now.day)
         if not self.last_tick:
             self.last_tick = self.ctx.now
