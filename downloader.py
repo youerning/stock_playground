@@ -126,6 +126,8 @@ def worker(q, hy_map, hy_code):
                 code = item["code"]
                 isindex = item.get("index", False)
                 download(api, market, code, years, isindex=isindex)
+        else:
+            print("连接失败")
     except Exception as e:
         print(e)
         traceback.print_exc()
