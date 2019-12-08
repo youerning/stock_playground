@@ -126,6 +126,18 @@ class Stat(Base):
         return (final_val - init_val) / init_val
 
     @property
+    def max_returns(self):
+        init_val = self._ast_val_hist[0]
+        max_val = max(self._ast_val_hist)
+        return (max_val - init_val) / init_val
+
+    @property
+    def min_returns(self):
+        init_val = self._ast_val_hist[0]
+        min_val = min(self._ast_val_hist)
+        return (min_val - init_val) / init_val
+
+    @property
     def sharpe(self, rf=0.04):
         """夏普比率, 不确定我这么算对不对
         计算公式: SharpeRatio = (E(Rp) - Rf) / op

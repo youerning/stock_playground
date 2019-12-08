@@ -31,6 +31,24 @@ class Context(UserDict):
         # 获取当前所有有报价的股票报价
         # 好像没法更快了
         # loc大概306 µs ± 9.28 µs per loop
+        # 字典索引的时间大概是254 µs ± 1.6 µs per loop
+        for code, hist in self["feed"].items():
+            bar = hist.get(tick)
+            if bar:
+                tick_data[code] = bar
+                self.latest_price[code] = bar[self.broker.deal_price]
+
+        self["tick_data"] = tick_data
+
+    def lagacy_set_current_time(self, tick):
+        self["now"] = tick
+
+        # list(filter(self.faster_loop, self["feed"].items()))
+        tick_data = {}
+        # 获取当前所有有报价的股票报价
+        # 好像没法更快了
+        # loc大概306 µs ± 9.28 µs per loop
+        # 字典索引的时间大概是254 µs ± 1.6 µs per loop
         for code, hist in self["feed"].items():
             df = hist[hist.index == tick]
             if len(df) == 1:
@@ -38,20 +56,6 @@ class Context(UserDict):
                 self.latest_price[code] = df.loc[tick][self.broker.deal_price]
             if len(df) > 1:
                 sys.exit("历史数据存在重复时间戳！终止运行")
-
-        self["tick_data"] = tick_data
-
-    def faster_loop(self, code_hist):
-        tick = self["now"]
-        code = code_hist[0]
-        hist = code_hist[1]
-        tick_data = {}
-        df = hist[hist.index == tick]
-        if len(df) == 1:
-            tick_data[code] = df.loc[tick]
-            self.latest_price[code] = df.loc[tick][self.broker.deal_price]
-        if len(df) > 1:
-            sys.exit("历史数据存在重复时间戳！终止运行")
 
         self["tick_data"] = tick_data
 
@@ -103,6 +107,7 @@ class Scheduler(object):
 
     def add_broker(self, broker):
         self.ctx["broker"] = broker
+        broker.ctx = self.ctx
 
     def add_backtest(self, backtest):
         self.ctx["backtest"] = backtest
@@ -118,10 +123,10 @@ class Scheduler(object):
         """增加交易日历"""
         self.ctx["trade_cal"] = trade_cal
 
-    def faster_loop(self, tick):
-        self.ctx.set_currnet_time(tick)
-        for runner in self.loop_run_lst:
-            runner.run(tick)
+    # def faster_loop(self, tick):
+    #     self.ctx.set_currnet_time(tick)
+    #     for runner in self.loop_run_lst:
+    #         runner.run(tick)
 
     def run(self):
         # 缓存每只股票的最新价格
@@ -144,11 +149,11 @@ class Scheduler(object):
         # 最后调用post-hook的run方法
         # filter 大概比for循环快一倍
         self.loop_run_lst = runner_lst
-        list(filter(self.faster_loop, self.ctx.trade_cal))
-        # for tick in self.ctx.trade_cal:
-        #     self.ctx.set_currnet_time(tick)
-        #     for runner in runner_lst:
-        #         runner.run(tick)
+        # list(filter(self.faster_loop, self.ctx.trade_cal))
+        for tick in self.ctx.trade_cal:
+            self.ctx.set_currnet_time(tick)
+            for runner in runner_lst:
+                runner.run(tick)
             # for pre_hook in self._pre_hook_lst:
             #     pre_hook.run(tick)
 
@@ -202,7 +207,7 @@ class BackTest(ABC):
         elif deal_type == "now":
             self._sch.add_runner(self)
             self._sch.add_backtest(self)
-            self._sch.add_runner(broker)
+            # self._sch.add_runner(broker)
             self._sch.add_broker(broker)
 
         # self._sch.add_runner(broker)
@@ -221,10 +226,10 @@ class BackTest(ABC):
         self.last_tick = None
 
         # 历史resample数据的缓存
-        self.hist_cache = {}
+        # self.hist_cache = {}
 
         # 设置默认freq
-        self.default_frq = to_offset(list(feed.values())[0].index.to_series().diff().min())
+        # self.default_frq = to_offset(list(feed.values())[0].index.to_series().diff().min())
 
     def info(self, msg):
         self._logger.info(msg)
@@ -269,7 +274,6 @@ class BackTest(ABC):
         pass
 
     def run(self, tick):
-        # 后期移除
         self.current_day = datetime(self.ctx.now.year, self.ctx.now.month, self.ctx.now.day)
         if not self.last_tick:
             self.last_tick = self.ctx.now

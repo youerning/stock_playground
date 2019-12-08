@@ -104,10 +104,12 @@ class BackTestBroker(Base):
             new_order_lst.append(order)
         self.order_lst = new_order_lst
 
-    def execute(self, order, tick_data):
+    def execute(self, order):
         """执行有效状态的订单"""
         # TODO:
         # 可以将买卖逻辑抽离出来用额外的两个函数_buy,_sell函数单独处理
+        self.order_hist_lst.append(order)
+        tick_data = self.ctx["tick_data"]
         order_code = order["code"]
         order_price = order["price"]
         order_shares = order["shares"]
@@ -146,7 +148,6 @@ class BackTestBroker(Base):
                    "shares": order["shares"]}
 
             self.cash = self.cash - cost - commission
-            self.available_cash = self.cash
             order["deal_lst"].append(deal)
             self.position[order_code].append(pos)
 
@@ -253,7 +254,6 @@ class BackTestBroker(Base):
             
 
             self.cash -= commission
-            self.available_cash = self.cash
             order["deal_lst"].extend(deal_lst)
             self.ctx.bt.on_order_ok(order)
 
@@ -339,12 +339,6 @@ class BackTestBroker(Base):
         if price is None:
             price = self.ctx.latest_price[code]
         
-        cost = shares * price
-        commission = cost * self.cm_rate
-        if commission < 5:
-            commission = 5
-
-        self.available_cash = self.available_cash - cost - commission
         order = {
             "id": self._id,
             "type": "buy",
@@ -357,7 +351,7 @@ class BackTestBroker(Base):
             "done": False,
             "deal_lst": []
         }
-        self.submit(order)
+        self.execute(order)
         return order
 
     def sell(self, code, shares, price=None, msg=None, ttl=15):
@@ -432,7 +426,7 @@ class BackTestBroker(Base):
             "done": False,
             "deal_lst": []
         }
-        self.submit(order)
+        self.execute(order)
         return order
 
     def sell_all(self, code, **kwargs):

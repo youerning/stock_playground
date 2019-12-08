@@ -52,16 +52,16 @@ class K(object):
         # ulh upper line height, 上影线的高度
         # llh lower line height, 下影线的高度
 
-        entity = (bar.close - bar.open) / bar.open
+        entity = (bar["close"] - bar["open"]) / bar["open"]
         # 虽然代码行数多了四行，但是open, close只需要比较一次
-        if bar.open > bar.close:
-            ulh = (bar.high - bar.open) / bar.open
-            llh = (bar.low - bar.close) / bar.close
+        if bar["open"] > bar["close"]:
+            ulh = (bar["high"] - bar["open"]) / bar["open"]
+            llh = (bar["low"] - bar["close"]) / bar["close"]
         else:
-            ulh = (bar.high - bar.close) / bar.close
-            llh = (bar.low - bar.open) / bar.open
-        # ulh = bar.high - max([bar.open, bar.close])
-        # llh = min([bar.open, bar.close]) - bar.low
+            ulh = (bar["high"] - bar["close"]) / bar["close"]
+            llh = (bar["low"] - bar["open"]) / bar["open"]
+        # ulh = bar["high"] - max([bar["open"], bar["close"]"])
+        # llh = min([bar["open"], bar["close"]]) - bar["low"]
 
         return entity, ulh, llh
 
