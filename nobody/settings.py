@@ -48,13 +48,13 @@ if path.exists("config.yml"):
         config.update(user_config)
 
 
-config["STOCK_DATA_PATH"] = path.join(config["DATA_DIR"], config["STOCK_DATA_DIR"])
-config["INDEX_DATA_PATH"] = path.join(config["DATA_DIR"], config["INDEX_DATA_DIR"])
+# config["STOCK_DATA_PATH"] = path.join(config["DATA_DIR"], config["STOCK_DATA_DIR"])
+# config["INDEX_DATA_PATH"] = path.join(config["DATA_DIR"], config["INDEX_DATA_DIR"])
 
-if not path.exists(config["STOCK_DATA_PATH"]):
-    os.makedirs(config["STOCK_DATA_PATH"])
+# if not path.exists(config["STOCK_DATA_PATH"]):
+#     os.makedirs(config["STOCK_DATA_PATH"])
 
-if not path.exists(config["INDEX_DATA_PATH"]):
-    os.makedirs(config["INDEX_DATA_PATH"])
+# if not path.exists(config["INDEX_DATA_PATH"]):
+#     os.makedirs(config["INDEX_DATA_PATH"])
 
 

@@ -24,14 +24,14 @@ class Context(UserDict):
         return self[key]
 
     def set_currnet_time(self, tick):
+        """设置回测循环中的当前时间"""
         self["now"] = tick
 
-        # list(filter(self.faster_loop, self["feed"].items()))
         tick_data = {}
         # 获取当前所有有报价的股票报价
         # 好像没法更快了
         # loc大概306 µs ± 9.28 µs per loop
-        # 字典索引的时间大概是254 µs ± 1.6 µs per loop
+        # 字典索引的时间大概是254 ns ± 1.6 µs per loop
         for code, hist in self["feed"].items():
             bar = hist.get(tick)
             if bar:
@@ -39,37 +39,6 @@ class Context(UserDict):
                 self.latest_price[code] = bar[self.broker.deal_price]
 
         self["tick_data"] = tick_data
-
-    def lagacy_set_current_time(self, tick):
-        self["now"] = tick
-
-        # list(filter(self.faster_loop, self["feed"].items()))
-        tick_data = {}
-        # 获取当前所有有报价的股票报价
-        # 好像没法更快了
-        # loc大概306 µs ± 9.28 µs per loop
-        # 字典索引的时间大概是254 µs ± 1.6 µs per loop
-        for code, hist in self["feed"].items():
-            df = hist[hist.index == tick]
-            if len(df) == 1:
-                tick_data[code] = df.loc[tick]
-                self.latest_price[code] = df.loc[tick][self.broker.deal_price]
-            if len(df) > 1:
-                sys.exit("历史数据存在重复时间戳！终止运行")
-
-        self["tick_data"] = tick_data
-
-    def get_hist(self, code=None):
-        """如果不指定code, 获取截至到当前时间的所有股票的历史数据"""
-        if code is None:
-            ret = {}
-            for code, hist in self["feed"].items():
-                ret[code] = hist[hist.index <= self.now]
-            return ret
-        elif code in self.feed:
-            hist = self.feed[code]
-            return {code: hist[hist.index <= self.now]}
-
 
 class Scheduler(object):
     """
@@ -83,10 +52,6 @@ class Scheduler(object):
         ctx.trade_cal: 交易日历
         ctx.broker: Broker对象
         ctx.bt/ctx.backtest: Backtest对象
-
-    可用方法:
-        ctx.get_hist
-
     """
 
     def __init__(self):
@@ -123,11 +88,6 @@ class Scheduler(object):
         """增加交易日历"""
         self.ctx["trade_cal"] = trade_cal
 
-    # def faster_loop(self, tick):
-    #     self.ctx.set_currnet_time(tick)
-    #     for runner in self.loop_run_lst:
-    #         runner.run(tick)
-
     def run(self):
         # 缓存每只股票的最新价格
         self.ctx["latest_price"] = {}
@@ -138,20 +98,27 @@ class Scheduler(object):
             runner.ctx = self.ctx
             runner.initialize()
 
-        # 创建交易日历
-        if "trade_cal" not in self.ctx:
-            df = list(self.ctx.feed.values())[0]
-            self.ctx["trade_cal"] = df.index
-
         # 通过遍历交易日历的时间依次调用runner
         # 首先调用所有pre-hook的run方法
         # 然后调用broker,backtest的run方法
         # 最后调用post-hook的run方法
-        # filter 大概比for循环快一倍
-        self.loop_run_lst = runner_lst
-        # list(filter(self.faster_loop, self.ctx.trade_cal))
+        bt = self.ctx.bt
+        last_tick = self.ctx["now"] = self.ctx.trade_cal[0]
+        is_market_start = True
+
         for tick in self.ctx.trade_cal:
+            diff = tick - last_tick
+            # 15:00 - 09:30 = 19800 secs
+            if diff.total_seconds() > 19800:
+                last_tick = tick
+                bt.on_market_close()
+                is_market_start = True
+
             self.ctx.set_currnet_time(tick)
+            if is_market_start:
+                bt.on_market_start()
+                is_market_start = False
+
             for runner in runner_lst:
                 runner.run(tick)
             # for pre_hook in self._pre_hook_lst:
@@ -163,6 +130,7 @@ class Scheduler(object):
             # for post_hook in self._post_hook_lst:
             #     post_hook.run(tick)
 
+        bt.on_market_close()
         # 循环结束后调用所有runner对象的finish方法
         for runner in runner_lst:
             runner.finish()
@@ -175,20 +143,18 @@ class BackTest(ABC):
 
     Parameters:
       feed:dict
-                股票代码历史数据， 如{"000001.SZ": pd.DataFrame}
+                股票代码历史数据， 如{"000001.SZ": {Timestamp('2018-04-20 10:30:00'): {"open": 10.67, "close": 10.89}}, ....}
       cash:int
-                用于股票回测的初始资金
+                用于股票回测的初始资金, 默认为10w
       broker:Broker
-                交易平台对象
+                提供buy, sell方法的交易平台对象
       trade_cal:list
                 以时间戳为元素的序列
       enable_stat:bool
-                开启统计功能
-      deal_type: str
-                成交类型, now代表当前bar提交订单，next_bar代表下一个bar提交订单
+                开启统计功能, 默认开启
     """
 
-    def __init__(self, feed, cash=100000, broker=None, trade_cal=None, enable_stat=True, deal_type="now"):
+    def __init__(self, feed, cash=100000, broker=None, trade_cal=None, enable_stat=True):
         self.feed = feed
         self._sch = Scheduler()
         self._logger = logger
@@ -198,38 +164,20 @@ class BackTest(ABC):
         else:
             broker = BackTestBroker(cash)
 
-        if deal_type == "next_bar":
-            # 因为broker对象在backtest对象之前加入scheduler对象，所以broker会在backtest的下一个tick处理backtest提交的订单
-            self._sch.add_runner(broker)
-            self._sch.add_broker(broker)
-            self._sch.add_runner(self)
-            self._sch.add_backtest(self)
-        elif deal_type == "now":
-            self._sch.add_runner(self)
-            self._sch.add_backtest(self)
-            # self._sch.add_runner(broker)
-            self._sch.add_broker(broker)
+        # 设置backtest, broker对象, 以及将自身实例放在调度器的runner_list中
+        self._sch.add_runner(self)
+        self._sch.add_backtest(self)
+        self._sch.add_broker(broker)
 
-        # self._sch.add_runner(broker)
-        # self._sch.add_broker(broker)
         self._sch.add_feed(feed)
         self.stat = Stat()
 
         if enable_stat:
             self._sch.add_hook(self.stat)
 
-        if trade_cal is not None:
-            self._sch.add_trade_cal(trade_cal)
-
-        # self.is_market_start = True
-        # 用于判断是否为开市
-        self.last_tick = None
-
-        # 历史resample数据的缓存
-        # self.hist_cache = {}
-
-        # 设置默认freq
-        # self.default_frq = to_offset(list(feed.values())[0].index.to_series().diff().min())
+        if trade_cal is None:
+            raise Exception("需要一个交易日历")
+        self._sch.add_trade_cal(trade_cal)
 
     def info(self, msg):
         self._logger.info(msg)
@@ -274,22 +222,9 @@ class BackTest(ABC):
         pass
 
     def run(self, tick):
-        self.current_day = datetime(self.ctx.now.year, self.ctx.now.month, self.ctx.now.day)
-        if not self.last_tick:
-            self.last_tick = self.ctx.now
-            self.on_market_start()
-
-        diff = self.ctx.now - self.last_tick
-        # 15:00 - 09:30 = 19800 secs
-        if diff.total_seconds() > 19800:
-            self.last_tick = self.ctx.now
-            self.on_market_start()
-
         self.before_on_tick(tick)
         self.on_tick(tick)
         self.after_on_tick(tick)
-        if self.ctx.now.hour >= 15:
-            self.on_market_close()
 
     def start(self):
         self._sch.run()
@@ -300,44 +235,3 @@ class BackTest(ABC):
         回测实例必须实现的方法，并编写自己的交易逻辑
         """
         pass
-    
-    def freq_history(self, code, columns, size, agg_args, freq=None):
-        """
-        获取feed中历史数据
-
-        Parameters
-        ---------
-        code : str
-            股票代码
-        columns : list
-            历史数据中需要的字段
-        size : int
-            历史数量的大小
-        frq : str
-            时间周期
-        
-        Returns
-        ---------
-        """
-        # from pandas.tseries.frequencies import to_offset
-        # pd.to_timedelta(to_offset('30T'))
-        # Timedelta('0 days 00:30:00')
-        # agg_args={"open": "first", "high": "max", "low": "min", "close": "last", "vol": "sum"}
-        if freq is None:
-            df = self.feed[code][columns]
-            return df[df.index <= self.ctx.now].tail(size)
-
-        if freq in self.hist_cache and code in self.hist_cache[freq]:
-            df = self.hist_cache[freq][code][columns]
-            return df[df.index <= self.ctx.now].tail(size)
-
-        if freq not in self.hist_cache:
-            self.hist_cache[freq] = {}
-
-        df = self.feed[code][columns]
-        df = df.resample(freq).agg(agg_args)
-        df = df.replace(0, np.nan)
-        df = df.dropna()
-
-        self.hist_cache[freq][code] = df
-        return  df[df.index <= self.ctx.now].tail(size)

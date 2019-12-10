@@ -31,20 +31,22 @@ class Base(ABC):
 
 class BackTestBroker(Base):
     """
-    由于回测的虚拟交易平台
+    由于回测的虚拟交易平台。
+    默认以当前bar的收盘价买入，即使是15:00的时间也能买入！
+    因为这里假设交易成交价在电脑下单的情况下时间极短，价格波动极短，所以回测忽略此波动。
 
     Parameters:
     ----------
       cash:int
             初始资金
       cm_rate:float
-            交易手续费
+            交易手续费率
       deal_price:str
             用于回测的股价类型(open, high, low, close), 默认为close
 
     回测示例
                             buy     sell    pos         total
-    broker      2012-01-04
+    broker      2012-01-04  1
     backtest    2012-01-04  1
     broker      2012-01-05  1               +100        100
     backtest    2012-01-05  2
@@ -287,7 +289,7 @@ class BackTestBroker(Base):
         self.order_lst.append(order)
         self.order_hist_lst.append(order)
 
-    def buy(self, code, shares, price=None, msg=None, ttl=15):
+    def buy(self, code, shares, price=None, msg=None):
         # TODO:
         # 设置可用资金或者是订单提交过程同步, 不然会有提交过多的购买订单，而没有现金购买
         """
@@ -303,8 +305,6 @@ class BackTestBroker(Base):
             买入股票数量
         msg : str
             额外的信息, 用于跟踪买入的原因
-        ttl : int
-            订单允许存在的最大时间，默认为15，-1代表永不超时
 
         Returns
         ---------
@@ -314,7 +314,6 @@ class BackTestBroker(Base):
                 "type": 订单类型, "buy",
                 "code": 股票代码,
                 "date": 提交日期,
-                "ttl": 存活时间, 当ttl等于0时则超时，往后不会在执行
                 "shares": 目标股份数量,
                 "price": 目标价格,
                 "done": 是否完成, 默认为False,
@@ -345,7 +344,6 @@ class BackTestBroker(Base):
             "code": code,
             "date": self.ctx.now,
             "msg": msg,
-            "ttl": ttl,
             "shares": shares,
             "price": price,
             "done": False,
@@ -354,7 +352,7 @@ class BackTestBroker(Base):
         self.execute(order)
         return order
 
-    def sell(self, code, shares, price=None, msg=None, ttl=15):
+    def sell(self, code, shares, price=None, msg=None):
         """
         提交卖出订单
 
@@ -368,8 +366,6 @@ class BackTestBroker(Base):
             卖出股票数量
         msg : str
             额外的信息, 用于跟踪卖出的原因
-        ttl : int
-            订单允许存在的最大时间，默认为15，-1代表永不超时
 
         Returns
         ---------
@@ -379,7 +375,6 @@ class BackTestBroker(Base):
                 "type": 订单类型, "sell",
                 "code": 股票代码,
                 "date": 提交日期,
-                "ttl": 存活时间, 当ttl等于0时则超时，往后不会在执行
                 "shares": 目标股份数量,
                 "init_shares": 最初请求交易份额,
                 "price": 目标价格,
@@ -419,7 +414,6 @@ class BackTestBroker(Base):
             "code": code,
             "date": self.ctx.now,
             "msg": msg,
-            "ttl": ttl,
             "shares": shares,
             "init_shares": shares,
             "price": price,

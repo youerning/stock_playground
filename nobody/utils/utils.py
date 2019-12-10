@@ -12,7 +12,7 @@ from os import path
 from ..settings import config
 
 
-data_path = config["STOCK_DATA_PATH"]
+# data_path = config["STOCK_DATA_PATH"]
 
 
 def init_log(name, level=30, log_to_file=False):

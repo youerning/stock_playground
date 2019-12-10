@@ -10,7 +10,7 @@
 -------
 持仓时间直方分布图|持仓收益直方分布图
 -------
-持有过的股票走势图，并且标记买入点/卖出点
+# 持有过的股票走势图，并且标记买入点/卖出点
 """
 # import sys
 import matplotlib.pyplot as plt
@@ -39,11 +39,7 @@ class Plotter(object):
         profit_lst = []
         hold_time_lst = []
         commission = 0
-        # 手续费比率
-        cm_in_netprofit = (commission / (net_profit + 1e-5)) * 100
 
-
-        order_count_date = []
         order_count = defaultdict(lambda :defaultdict(int))
         for order in self.order_lst:
             # 统计交易次数时间
@@ -63,7 +59,8 @@ class Plotter(object):
                 hold_time = time_diff.total_seconds() / 86400
                 hold_time_lst.append(hold_time)
         
-
+        # 手续费比率
+        cm_in_netprofit = (commission / (net_profit + 1e-5)) * 100
         title = "策略收益: {:.3f}% 年化收益: {:.3f}% 最大回撤: {:.3f}% 夏普比率: {:.3f}% 手续费比率: {:.3f}%\n\n策略走势"
         title = title.format(self.stat.total_returns * 100,
                              self.stat.annual_return * 100,
@@ -72,7 +69,7 @@ class Plotter(object):
                              cm_in_netprofit)
         fig = plt.figure(figsize=(12, 16))
         # fig.subplots_adjust(wspace=0.1, hspace=0.1, top=1)
-        code_lst = {order["code"] for order in self.order_lst}
+        # code_lst = {order["code"] for order in self.order_lst}
         # rows = len(code_lst) + 2
         rows = 3
         # date_formatter = mpl.dates.DateFormatter("%Y-%m-%d")
@@ -93,10 +90,10 @@ class Plotter(object):
             for open_date in order_count[typ]:
                 df_order_count.loc[open_date, typ] = order_count[typ][open_date]
 
-        df_order_count.plot(ax=ax_order_count)
+        df_order_count.plot(ax=ax_order_count, alpha=0.4)
         scatter_df = df_order_count[df_order_count > 0]
-        plt.scatter(scatter_df.index, scatter_df["buy"])
-        plt.scatter(scatter_df.index, scatter_df["sell"])
+        plt.scatter(scatter_df.index, scatter_df["buy"], alpha=0.4)
+        plt.scatter(scatter_df.index, scatter_df["sell"], alpha=0.4)
         # 绘制持仓时间，持仓收益直方图
         ax_hist1 = fig.add_subplot(rows, 2, 5)
         ax_hist2 = fig.add_subplot(rows, 2, 6)
@@ -106,8 +103,8 @@ class Plotter(object):
         if len(hold_time_lst) > 0:
             ax_hist2.hist(hold_time_lst)
 
-        ax_hist1.set_title("收益分布")
-        ax_hist2.set_title("持仓时间分布")
+        ax_hist1.set_title("收益分布(元)")
+        ax_hist2.set_title("持仓时间分布(天)")
 
         # # 绘制持仓股票走势图
         # for idx, code in enumerate(code_lst, start=3):
